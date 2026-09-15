@@ -161,21 +161,27 @@
       const all = contactSnap.docs.map(d => ({ id:d.id, ...d.data() }));
       let latest = "";
       all.forEach(c => { const k = dayKey(c.bootcampDate); if (k > latest) latest = k; });
-      leads = all.filter(c => !latest || dayKey(c.bootcampDate) === latest).map(c => ({
+      leads = all.filter(c => norm(c.contactType) === "DIRETTO" || !latest || dayKey(c.bootcampDate) === latest).map(c => ({
         ...c,
+        contactType: norm(c.contactType) === "DIRETTO" ? "DIRETTO" : "BOOTCAMP",
         name: c.name || `${c.firstName || ""} ${c.lastName || ""}`.trim(),
         dateLabel: formatDate(c.importedAt || c.registrationDate),
-        bootcampLabel: c.bootcampDate ? "Bootcamp " + formatDate(c.bootcampDate, false) : "Bootcamp"
+        bootcampLabel: norm(c.contactType) === "DIRETTO" ? "Contatto diretto" : (c.bootcampDate ? "Bootcamp " + formatDate(c.bootcampDate, false) : "Bootcamp")
       })).sort((a,b) => {
         if (statusClass(a.status) !== statusClass(b.status)) return statusClass(a.status) === "todo" ? -1 : 1;
-        return (jsDate(b.updatedAt)?.getTime() || 0) - (jsDate(a.updatedAt)?.getTime() || 0);
+        return (jsDate(b.updatedAt)?.getTime() || jsDate(b.registrationDate)?.getTime() || 0) -
+          (jsDate(a.updatedAt)?.getTime() || jsDate(a.registrationDate)?.getTime() || 0);
       });
       const stepSnap = await db.collection("nextSteps").where("operatorCode", "==", code).get();
       const now = Date.now();
       appointments = stepSnap.docs.map(d => ({ id:d.id, ...d.data() }))
         .filter(s => jsDate(s.when) && jsDate(s.when).getTime() >= now && !["COMPLETATO","CANCELLATO"].includes(norm(s.status)))
         .sort((a,b) => jsDate(a.when) - jsDate(b.when)).slice(0,9);
-      $("#bootcampDate").textContent = latest ? "Bootcamp " + formatDate(new Date(latest + "T12:00:00"), false) : "Ultimo Bootcamp";
+      const isStefano = profile.operatorCode === "ST";
+      $("#bootcampDate").textContent = isStefano ? "Tutti i contatti" : (latest ? "Bootcamp " + formatDate(new Date(latest + "T12:00:00"), false) : "Ultimo Bootcamp");
+      $("#typeFilter").classList.toggle("hidden", !isStefano);
+      $("#totalCount").nextElementSibling.textContent = isStefano ? "Contatti" : "Contatti Bootcamp";
+      $("#contacts").previousElementSibling.previousElementSibling.querySelector("h3").textContent = isStefano ? "Contatti da lavorare" : "Contatti dell’ultimo Bootcamp";
       const todo = leads.filter(l => statusClass(l.status) === "todo").length;
       $("#totalCount").textContent = leads.length;
       $("#todoCount").textContent = todo;
@@ -224,15 +230,17 @@
   function renderLeads() {
     const q = $("#search").value.toLowerCase();
     const filter = $("#filter").value;
+    const typeFilter = $("#typeFilter").value;
     const list = leads.filter(l => {
       const c = statusClass(l.status);
       const state = filter === "all" || (filter === "todo" && c === "todo") ||
         (filter === "rejected" && c === "rejected") || (filter === "worked" && c !== "todo");
-      return state && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
+      const typeMatches = typeFilter === "all" || l.contactType === typeFilter;
+      return state && typeMatches && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
     });
     $("#resultCount").textContent = `${list.length} di ${leads.length}`;
     $("#contacts").innerHTML = list.length ? list.map(l =>
-      `<article class="contact"><div><h4>${esc(l.name)}</h4><p>${esc(l.region || "")} · ${esc(l.phone || "")}</p><span class="status ${statusClass(l.status)}">${esc(l.status || "Da lavorare")}</span></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`
+      `<article class="contact"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.region || "")} · ${esc(l.phone || "")}</p><span class="status ${statusClass(l.status)}">${esc(l.status || "Da lavorare")}</span></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`
     ).join("") : '<div class="empty">Nessun contatto trovato.</div>';
     $$('[data-open]').forEach(b => b.onclick = () => openLead(b.dataset.open));
   }
@@ -249,6 +257,9 @@
     $("#leadId").textContent = current.id;
     $("#leadName").textContent = current.name;
     $("#leadBootcamp").textContent = current.bootcampLabel || "Bootcamp";
+    const isDirect = current.contactType === "DIRETTO";
+    $("#bootcampQuestions").classList.toggle("hidden", isDirect);
+    $("#directQuestions").classList.toggle("hidden", !isDirect);
     $("#leadMeta").textContent = [current.region, current.dateLabel].filter(Boolean).join(" · ");
     ["#call","#topCall"].forEach(s => $(s).href = "tel:" + phone(current.phone));
     ["#wa","#topWa"].forEach(s => $(s).href = "https://wa.me/39" + phone(current.phone));
@@ -452,7 +463,7 @@
         const lastName = String(pick(row,["COGNOME"]));
         const name = String(pick(row,["NOME E COGNOME","NOME COMPLETO"])) || `${firstName} ${lastName}`.trim();
         writes.push({ ref:db.collection("contacts").doc(id), data:{
-          leadId:id, operatorCode:code, operatorName:code === "FB" ? "Fabio" : "Stefano",
+          leadId:id, operatorCode:code, operatorName:code === "FB" ? "Fabio" : "Stefano", contactType:"BOOTCAMP",
           firstName, lastName, name, email:String(pick(row,["EMAIL","E-MAIL"])),
           phone:phone(pick(row,["CELLULARE","TELEFONO","PHONE"])),
           region:String(pick(row,["REGIONE","PROVINCIA"])), source:String(pick(row,["AFFILIATO","FONTE"])),
@@ -503,10 +514,11 @@
     button.disabled = true;
     button.textContent = "Creazione Excel…";
     try {
-      const ids = new Set(leads.map(l => l.id));
+      const reportLeads = leads.filter(contact => contact.contactType !== "DIRETTO");
+      const ids = new Set(reportLeads.map(contact => contact.id));
       const eventSnap = await db.collection("events").where("operatorCode","==",profile.operatorCode).get();
       const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId) && !e.deleted);
-      const summary = leads.map(c => ({
+      const summary = reportLeads.map(c => ({
         "LEAD ID":c.id, "NOME E COGNOME":c.name, "TELEFONO":c.phone || "", "EMAIL":c.email || "",
         "REGIONE":c.region || "", "OPERATORE":profile.name, "DATA BOOTCAMP":formatDate(c.bootcampDate,false),
         "STATO":c.status || "Da lavorare", "PROSSIMO STEP":c.nextStep || "", "DATA PROSSIMO STEP":formatDate(c.nextStepAt),
@@ -539,6 +551,7 @@
     $$('[data-logout]').forEach(b => b.onclick = async () => { await auth.signOut(); location.reload(); });
     $("#search").oninput = renderLeads;
     $("#filter").onchange = renderLeads;
+    $("#typeFilter").onchange = renderLeads;
     $("#back").onclick = () => { $("#leadSheet").classList.add("hidden"); document.body.style.overflow = ""; loadDashboard(); };
     const nums = Array.from({length:10},(_,i) => `<button class="chip" type="button">${i+1}</button>`).join("");
     $(".score").innerHTML = nums;

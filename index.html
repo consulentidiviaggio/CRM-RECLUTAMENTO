@@ -711,9 +711,14 @@
           z-index: 10;
           background: #fff;
           padding: 5px 0 9px;
+          flex-wrap: wrap;
+        }
+        .toolbar .search {
+          flex-basis: 100%;
         }
         .filter {
-          max-width: 135px;
+          max-width: none;
+          flex: 1;
         }
         .sheet-head {
           padding: 10px;
@@ -846,6 +851,11 @@
             <option value="worked">Lavorati</option>
             <option value="rejected">Non interessati</option>
           </select>
+          <select id="typeFilter" class="filter">
+            <option value="all">Tutte le provenienze</option>
+            <option value="BOOTCAMP">Bootcamp</option>
+            <option value="DIRETTO">Diretti</option>
+          </select>
         </div>
         <section class="contacts" id="contacts">
           <div class="empty">Caricamento contatti…</div>
@@ -906,6 +916,7 @@
           </section>
           <section class="panel">
             <h3>Domande della telefonata</h3>
+            <div id="bootcampQuestions">
             <div class="question">
               <label>Cosa ti ha spinto a registrarti al Bootcamp?</label
               ><textarea
@@ -961,6 +972,67 @@
                 <button class="chip">Appassionato</button
                 ><button class="chip">Costruttore</button
                 ><button class="chip">Pro</button>
+              </div>
+            </div>
+            </div>
+            <div id="directQuestions" class="hidden">
+              <div class="question">
+                <label>Hai avuto modo di vedere il sito o uno dei video introduttivi?</label>
+                <div class="chips" data-group="DIRETTO SITO/VIDEO">
+                  <button class="chip">Sì</button><button class="chip">No</button>
+                </div>
+              </div>
+              <div class="question">
+                <label>Cosa ti ha incuriosito maggiormente?</label>
+                <textarea class="note" data-key="DIRETTO CURIOSITÀ" placeholder="Scrivi o usa la dettatura…"></textarea>
+              </div>
+              <div class="question">
+                <label>C’è qualcosa che ti ha lasciato qualche dubbio?</label>
+                <textarea class="note" data-key="DIRETTO DUBBIO"></textarea>
+              </div>
+              <div class="question">
+                <label>Hai già avuto esperienze nel turismo?</label>
+                <div class="chips" data-group="DIRETTO ESPERIENZA TURISMO">
+                  <button class="chip">Sì</button><button class="chip">No</button>
+                </div>
+                <textarea class="note" data-key="DIRETTO ESPERIENZA NOTE" placeholder="Approfondimento facoltativo"></textarea>
+              </div>
+              <div class="question">
+                <label>Come immagini questa opportunità oggi?</label>
+                <div class="chips" data-group="DIRETTO OBIETTIVO">
+                  <button class="chip">Seconda attività</button>
+                  <button class="chip">Attività principale</button>
+                  <button class="chip">Sviluppo attività esistente</button>
+                </div>
+              </div>
+              <div class="question">
+                <label>Quanto tempo pensi realisticamente di poter dedicare ogni settimana?</label>
+                <div class="chips" data-group="DIRETTO TEMPO DISPONIBILE">
+                  <button class="chip">&lt;3h</button><button class="chip">3–6h</button>
+                  <button class="chip">7–10h</button><button class="chip">&gt;10h</button>
+                </div>
+              </div>
+              <div class="question">
+                <label>Quale risultato dovrebbe darti questa attività perché ne valesse la pena?</label>
+                <textarea class="note" data-key="DIRETTO RISULTATO ATTESO"></textarea>
+              </div>
+              <div class="question">
+                <label>Hai visto anche la parte relativa al contributo di attivazione?</label>
+                <div class="chips" data-group="DIRETTO CONTRIBUTO VISTO">
+                  <button class="chip">Sì</button><button class="chip">No</button>
+                </div>
+              </div>
+              <div class="question">
+                <label>Il costo ti crea qualche perplessità oppure vuoi capire cosa c’è dietro quel costo?</label>
+                <div class="chips" data-group="DIRETTO COSTO/VALORE">
+                  <button class="chip">Perplessità sul costo</button>
+                  <button class="chip">Vuole capire il valore</button>
+                  <button class="chip">Nessuna perplessità</button>
+                </div>
+              </div>
+              <div class="question">
+                <label>C’è qualche aspetto contrattuale che vuoi approfondire?</label>
+                <textarea class="note" data-key="DIRETTO ASPETTO CONTRATTUALE"></textarea>
               </div>
             </div>
           </section>
@@ -1472,6 +1544,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=27"></script>
+    <script src="firebase-crm.js?v=28"></script>
   </body>
 </html>

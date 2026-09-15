@@ -23,10 +23,6 @@
     "Zoom proposta", "Bootcamp confermato", "Da richiamare",
     "Non interessato", "Attivazione completata", "Attivo come consulente"
   ];
-  const scoreNames = [
-    "CERTEZZA ATTIVITÀ 1-10", "CERTEZZA STRUTTURA 1-10",
-    "CERTEZZA CAPACITÀ 1-10", "INTENZIONE DI PARTIRE 1-10"
-  ];
   const answerFields = [
     "MOTIVAZIONE PRINCIPALE", "ESPERIENZA TURISMO", "ORGANIZZA GIÀ VIAGGI",
     "OBIETTIVO", "TEMPO DISPONIBILE", "RISULTATO ATTESO", "INTERESSE 1-10",
@@ -302,11 +298,13 @@
     const button = $("#nextForm .save");
     const type = $("#stepType").value;
     const note = $("#stepNote").value;
+    const lastEvent = getLastRapidEvent();
     const dateValue = $("#calendarWhen")?.value || "";
     const when = dateValue ? new Date(dateValue) : null;
     const details = [
       "Nome: " + current.name, "Telefono: " + (current.phone || "Non indicato"),
       current.bootcampLabel || "Bootcamp non indicato", "Azione: " + type,
+      "Ultimo evento rapido: " + (lastEvent || "Nessuno"),
       "Nota: " + (note || "—"), "Contatto CRM: " + current.id, location.href
     ].join("\n");
     const params = { action:"TEMPLATE", text:type + " – " + current.name, details };
@@ -325,7 +323,7 @@
       batch.set(stepRef, {
         leadId:current.id, contactName:current.name, phone:current.phone || "",
         bootcampDate:current.bootcampDate || null, type, note, when:when || null,
-        status:"Da fare", operatorCode:profile.operatorCode, operatorName:profile.name,
+        status:"Da fare", lastRapidEvent:lastEvent || "", operatorCode:profile.operatorCode, operatorName:profile.name,
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
       batch.set(eventRef, {
@@ -342,6 +340,19 @@
       await openLead(current.id);
     } catch (error) { toast("Calendar aperto. Errore CRM: " + error.message, true); }
     finally { button.disabled = false; }
+  }
+
+  function getLastRapidEvent() {
+    const pending = $$('.event.pending').map(button => button.textContent.trim());
+    if (pending.length) return pending[pending.length - 1];
+    const rapid = currentEvents.find(event => eventNames.includes(String(event.type || "").trim()));
+    return rapid ? String(rapid.type || "").trim() : "";
+  }
+
+  function openNextStep() {
+    const lastEvent = getLastRapidEvent();
+    $("#lastEventSummary").textContent = "Ultimo evento rapido: " + (lastEvent || "nessuno");
+    $("#nextDialog").showModal();
   }
 
   function renderAdmin() {
@@ -489,7 +500,6 @@
     $("#back").onclick = () => { $("#leadSheet").classList.add("hidden"); document.body.style.overflow = ""; loadDashboard(); };
     const nums = Array.from({length:10},(_,i) => `<button class="chip" type="button">${i+1}</button>`).join("");
     $(".score").innerHTML = nums;
-    $("#scores").innerHTML = scoreNames.map(n => `<div class="question"><label>${n.replace(" 1-10","")}</label><div class="chips score" data-group="${n}">${nums}</div></div>`).join("");
     $("#events").innerHTML = eventNames.map(n => `<button class="event" type="button">${n}</button>`).join("");
     $$('[data-group] .chip').forEach(c => c.onclick = e => { e.preventDefault(); [...c.parentElement.children].forEach(x => x.classList.toggle("active", x === c)); });
     $$('.event').forEach(b => b.onclick = () => {
@@ -497,7 +507,7 @@
       b.classList.toggle("pending");
     });
     $("#updateContact").onclick = saveContact;
-    $("#next").onclick = () => $("#nextDialog").showModal();
+    $("#next").onclick = openNextStep;
     $("#cancelStep").onclick = () => $("#nextDialog").close();
     const noteField = $("#stepNote").closest(".field");
     noteField.insertAdjacentHTML("beforebegin", '<div class="field"><label>Data e ora (facoltative)</label><input id="calendarWhen" type="datetime-local" /></div>');

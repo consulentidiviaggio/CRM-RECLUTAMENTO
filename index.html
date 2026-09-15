@@ -1014,13 +1014,13 @@
       </form>
     </dialog>
     <div class="toast" id="toast"></div>
-    <script>
+    <script type="text/plain" data-legacy="apps-script-config">
       localStorage.setItem(
         "crm-api-url",
         "https://script.google.com/macros/s/AKfycbxotAkLEZtkDMAgTq0qTo-_zXHGewS3MAxdoakNXFDkg1AzN9LWzUErvSYvab6VCgPsuQ/exec",
       );
     </script>
-    <script>
+    <script type="text/plain" data-legacy="apps-script-app">
       const DEFAULT_API_URL = "__APPS_SCRIPT_URL__",
         eventNames = [
           "Primo messaggio inviato",
@@ -1443,7 +1443,7 @@
       };
       init();
     </script>
-    <script>
+    <script type="text/plain" data-legacy="apps-script-report">
       $("#bootcampReport").onclick = async () => {
         const button = $("#bootcampReport");
         button.disabled = true;
@@ -1479,5 +1479,10 @@
         }
       };
     </script>
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="firebase-crm.js"></script>
   </body>
 </html>

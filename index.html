@@ -276,6 +276,7 @@
         border-left: 4px solid var(--o);
         border-radius: 15px;
         padding: 13px;
+        cursor: pointer;
       }
       .appointment strong {
         display: block;
@@ -295,6 +296,10 @@
         margin-top: 9px;
         font-size: 11px;
         font-weight: 700;
+      }
+      .appointment button[data-delete-step] {
+        color: var(--red);
+        margin-left: 6px;
       }
       .empty {
         border: 1px dashed #ccc;
@@ -538,6 +543,12 @@
         background: #e7f5ed;
         border-color: #56a276;
         color: #12643c;
+      }
+      .event.remove-pending {
+        background: #fff0f0;
+        border-color: var(--red);
+        color: var(--red);
+        text-decoration: line-through;
       }
       .update,
       .next {
@@ -979,21 +990,8 @@
           Ultimo evento rapido: nessuno
         </div>
         <div class="field">
-          <label>Azione</label
-          ><select id="stepType">
-            <option>Richiamare</option>
-            <option>Inviare materiale</option>
-            <option>Invitare al Bootcamp</option>
-            <option>Attendere Bootcamp</option>
-            <option>Chiamata fissata</option>
-            <option>Fissare Zoom</option>
-            <option>Zoom da fissare</option>
-            <option>Inviare contratto</option>
-            <option>Inviare promozione</option>
-            <option>Attendere decisione</option>
-            <option>Chiudere non interessato</option>
-            <option>Attivato</option>
-          </select>
+          <label>Azione</label>
+          <input id="stepType" value="Contattare" readonly />
         </div>
         <div class="field">
           <label>Nota</label><textarea id="stepNote" rows="3"></textarea>
@@ -1474,6 +1472,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=25"></script>
+    <script src="firebase-crm.js?v=27"></script>
   </body>
 </html>

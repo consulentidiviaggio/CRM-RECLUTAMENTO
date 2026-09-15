@@ -173,7 +173,7 @@
       const stepSnap = await db.collection("nextSteps").where("operatorCode", "==", code).get();
       const now = Date.now();
       appointments = stepSnap.docs.map(d => ({ id:d.id, ...d.data() }))
-        .filter(s => jsDate(s.when) && jsDate(s.when).getTime() >= now && norm(s.status) !== "COMPLETATO")
+        .filter(s => jsDate(s.when) && jsDate(s.when).getTime() >= now && !["COMPLETATO","CANCELLATO"].includes(norm(s.status)))
         .sort((a,b) => jsDate(a.when) - jsDate(b.when)).slice(0,9);
       $("#bootcampDate").textContent = latest ? "Bootcamp " + formatDate(new Date(latest + "T12:00:00"), false) : "Ultimo Bootcamp";
       const todo = leads.filter(l => statusClass(l.status) === "todo").length;
@@ -182,14 +182,44 @@
       $("#workedCount").textContent = leads.length - todo;
       $("#appointmentCount").textContent = appointments.length;
       $("#appointments").innerHTML = appointments.length ? appointments.map(a =>
-        `<article class="appointment"><strong>${esc(a.type)} · ${esc(a.contactName)}</strong><small>${esc(formatDate(a.when))}${a.note ? " · "+esc(a.note) : ""}</small><button data-contact="${esc(a.leadId)}">Apri scheda</button></article>`
+        `<article class="appointment" data-appointment-contact="${esc(a.leadId)}" role="button" tabindex="0"><strong>${esc(a.type)} · ${esc(a.contactName)}</strong><small>${esc(formatDate(a.when))}${a.note ? " · "+esc(a.note) : ""}</small><div><button data-contact="${esc(a.leadId)}">Apri scheda</button><button data-delete-step="${esc(a.id)}">Elimina</button></div></article>`
       ).join("") : '<div class="empty">Nessun appuntamento programmato.</div>';
-      $$('[data-contact]').forEach(b => b.onclick = () => openLead(b.dataset.contact));
+      $$('[data-contact]').forEach(b => b.onclick = event => { event.stopPropagation(); openLead(b.dataset.contact); });
+      $$('[data-delete-step]').forEach(b => b.onclick = event => { event.stopPropagation(); cancelAppointment(b.dataset.deleteStep); });
+      $$('[data-appointment-contact]').forEach(card => {
+        card.onclick = () => openLead(card.dataset.appointmentContact);
+        card.onkeydown = event => { if (event.key === "Enter" || event.key === " ") openLead(card.dataset.appointmentContact); };
+      });
       renderLeads();
     } catch (error) {
       toast(error.message, true);
       $("#contacts").innerHTML = '<div class="empty">Impossibile caricare i contatti.</div>';
     }
+  }
+
+  async function cancelAppointment(stepId) {
+    const appointment = appointments.find(item => item.id === stepId);
+    if (!appointment) return;
+    if (!confirm(`Eliminare ${appointment.type} di ${appointment.contactName}?`)) return;
+    try {
+      const batch = db.batch();
+      batch.update(db.collection("nextSteps").doc(stepId), {
+        status:"Cancellato", cancelledAt:firebase.firestore.FieldValue.serverTimestamp(),
+        cancelledBy:profile.name
+      });
+      const eventRef = db.collection("events").doc();
+      batch.set(eventRef, {
+        leadId:appointment.leadId, operatorCode:profile.operatorCode, operatorName:profile.name,
+        type:"Appuntamento cancellato", detail:appointment.type || "", note:appointment.note || "",
+        origin:"WEBAPP", createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      batch.update(db.collection("contacts").doc(appointment.leadId), {
+        nextStep:"", nextStepAt:null, updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      await batch.commit();
+      toast("Appuntamento eliminato dalla home ✓");
+      await loadDashboard();
+    } catch (error) { toast(error.message, true); }
   }
   function renderLeads() {
     const q = $("#search").value.toLowerCase();
@@ -214,7 +244,7 @@
     savedEvents = new Set();
     $$('[data-group] .chip').forEach(c => c.classList.remove("active"));
     $$('.note').forEach(n => n.value = "");
-    $$('.event').forEach(b => b.classList.remove("saved", "pending"));
+    $$('.event').forEach(b => b.classList.remove("saved", "pending", "remove-pending"));
     $("#timeline").innerHTML = '<div class="empty">Caricamento scheda…</div>';
     $("#leadId").textContent = current.id;
     $("#leadName").textContent = current.name;
@@ -237,6 +267,7 @@
         .where("operatorCode", "==", profile.operatorCode)
         .where("leadId", "==", current.id).get();
       const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+        .filter(event => !event.deleted)
         .sort((a,b) => (jsDate(b.createdAt)?.getTime() || 0) - (jsDate(a.createdAt)?.getTime() || 0));
       timeline(events);
     } catch (error) {
@@ -250,6 +281,7 @@
     $$('.event').forEach(b => {
       const saved = savedEvents.has(b.textContent.trim());
       b.classList.toggle("saved", saved);
+      b.classList.remove("remove-pending");
       if (saved) b.classList.remove("pending");
     });
     $("#timeline").innerHTML = events.length ? events.map(e =>
@@ -267,10 +299,13 @@
     });
     $$('.note').forEach(n => answers[n.dataset.key] = n.value);
     const newEvents = $$('.event.pending').map(b => b.textContent.trim());
+    const removedEvents = $$('.event.remove-pending').map(b => b.textContent.trim());
     button.disabled = true;
     button.textContent = "Aggiornamento…";
     try {
-      const status = combinedStatus(newEvents, current.status, answers);
+      const remainingEvents = currentEvents.filter(event => !removedEvents.includes(String(event.type || "").trim()));
+      const activeTypes = remainingEvents.map(event => event.type).concat(newEvents);
+      const status = combinedStatus(activeTypes, "Da lavorare", answers);
       const batch = db.batch();
       batch.update(db.collection("contacts").doc(current.id), {
         answers, status, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -283,10 +318,17 @@
           createdAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       });
+      currentEvents.filter(event => removedEvents.includes(String(event.type || "").trim())).forEach(event => {
+        batch.update(db.collection("events").doc(event.id), {
+          deleted:true,
+          deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+          deletedBy:profile.name
+        });
+      });
       await batch.commit();
       current.status = status;
       const now = new Date();
-      timeline(newEvents.map(type => ({ type, createdAt:now, operatorName:profile.name })).concat(currentEvents));
+      timeline(newEvents.map(type => ({ type, createdAt:now, operatorName:profile.name })).concat(remainingEvents));
       toast("Scheda aggiornata ✓");
     } catch (error) { toast(error.message, true); }
     finally { button.disabled = false; button.textContent = "Aggiorna scheda"; }
@@ -463,7 +505,7 @@
     try {
       const ids = new Set(leads.map(l => l.id));
       const eventSnap = await db.collection("events").where("operatorCode","==",profile.operatorCode).get();
-      const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId));
+      const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId) && !e.deleted);
       const summary = leads.map(c => ({
         "LEAD ID":c.id, "NOME E COGNOME":c.name, "TELEFONO":c.phone || "", "EMAIL":c.email || "",
         "REGIONE":c.region || "", "OPERATORE":profile.name, "DATA BOOTCAMP":formatDate(c.bootcampDate,false),
@@ -503,7 +545,11 @@
     $("#events").innerHTML = eventNames.map(n => `<button class="event" type="button">${n}</button>`).join("");
     $$('[data-group] .chip').forEach(c => c.onclick = e => { e.preventDefault(); [...c.parentElement.children].forEach(x => x.classList.toggle("active", x === c)); });
     $$('.event').forEach(b => b.onclick = () => {
-      if (savedEvents.has(b.textContent.trim())) return toast("Evento già registrato");
+      const type = b.textContent.trim();
+      if (savedEvents.has(type)) {
+        b.classList.toggle("remove-pending");
+        return toast(b.classList.contains("remove-pending") ? "Evento da togliere: premi Aggiorna scheda" : "Rimozione annullata");
+      }
       b.classList.toggle("pending");
     });
     $("#updateContact").onclick = saveContact;

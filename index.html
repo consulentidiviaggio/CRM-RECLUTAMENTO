@@ -463,9 +463,12 @@
       }
       .quick {
         display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
         gap: 6px;
       }
-      .quick a {
+      .quick a,
+      .quick .first-message {
         height: max-content;
         border-radius: 10px;
         padding: 9px 10px;
@@ -474,6 +477,16 @@
         text-decoration: none;
         font-size: 11px;
         font-weight: 700;
+      }
+      .quick .first-message {
+        border: 0;
+        background: var(--o);
+        color: #fff;
+        cursor: pointer;
+      }
+      .quick .first-message:disabled {
+        opacity: 0.65;
+        cursor: wait;
       }
       .question {
         padding: 13px 0;
@@ -911,6 +924,7 @@
               <p id="leadMeta"></p>
             </div>
             <div class="quick">
+              <button type="button" id="firstMessage" class="first-message">Salva e apri WhatsApp</button>
               <a id="wa">WhatsApp</a><a id="call">Chiama</a>
             </div>
           </section>
@@ -1544,6 +1558,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=28"></script>
+    <script src="firebase-crm.js?v=30"></script>
   </body>
 </html>

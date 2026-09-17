@@ -248,6 +248,7 @@
   async function openLead(id) {
     current = leads.find(l => String(l.id) === String(id));
     if (!current) return;
+    $("#firstMessage").classList.toggle("hidden", profile.operatorCode !== "ST");
     currentEvents = [];
     savedEvents = new Set();
     $$('[data-group] .chip').forEach(c => c.classList.remove("active"));
@@ -300,7 +301,7 @@
     ).join("") : '<div class="empty">Nessun evento registrato.</div>';
   }
 
-  async function saveContact() {
+  async function saveContact(extraEvents = []) {
     if (!current) return;
     const button = $("#updateContact");
     const answers = {};
@@ -309,7 +310,11 @@
       answers[g.dataset.group] = active ? active.textContent : "";
     });
     $$('.note').forEach(n => answers[n.dataset.key] = n.value);
-    const newEvents = $$('.event.pending').map(b => b.textContent.trim());
+    const newEvents = [...new Set(
+      $$('.event.pending').map(b => b.textContent.trim())
+        .concat(extraEvents)
+        .filter(type => type && !savedEvents.has(type))
+    )];
     const removedEvents = $$('.event.remove-pending').map(b => b.textContent.trim());
     button.disabled = true;
     button.textContent = "Aggiornamento…";
@@ -341,8 +346,70 @@
       const now = new Date();
       timeline(newEvents.map(type => ({ type, createdAt:now, operatorName:profile.name })).concat(remainingEvents));
       toast("Scheda aggiornata ✓");
+      return true;
     } catch (error) { toast(error.message, true); }
     finally { button.disabled = false; button.textContent = "Aggiorna scheda"; }
+    return false;
+  }
+
+  function firstMessageText() {
+    const operatorName = profile.name || "Stefano";
+    if (current.contactType === "DIRETTO") {
+      return `Ciao 😊 sono ${operatorName} di iconsulentidiviaggio.it.
+
+Ho visto la tua registrazione sul nostro sito sull’attività di Consulente di Viaggio. Sul sito, probabilmente, hai già avuto modo di vedere una prima presentazione dell’attività, i video introduttivi e anche i costi.
+
+Per capire meglio cosa stai cercando, quale di queste situazioni ti rappresenta di più?
+
+1) Cerco una seconda attività
+2) Vorrei trasformare la mia passione per i viaggi in qualcosa di concreto
+3) Sto valutando un’attività professionale nel settore turismo
+4) Sono già nel settore e voglio capire come funziona il vostro modello
+
+Rispondimi semplicemente con 1, 2, 3 o 4.
+Grazie`;
+    }
+    const bootcampDate = jsDate(current.bootcampDate);
+    const dateLabel = bootcampDate
+      ? new Intl.DateTimeFormat("it-IT", { day:"numeric", month:"long" }).format(bootcampDate)
+      : "prossimo";
+    return `Ciao 😊 sono ${operatorName} di iconsulentidiviaggio.it.
+
+Ho visto la tua registrazione al Bootcamp del ${dateLabel} dedicato a chi vuole scoprire come funziona l’attività di Consulente di Viaggio 🌍✈️
+
+Prima della diretta vorrei capire meglio cosa ti ha spinto a registrarti, così posso aiutarti a concentrarti sugli aspetti più utili per te.
+
+Quale di queste situazioni ti rappresenta di più?
+
+1️⃣ Cerco una seconda attività da affiancare al mio lavoro
+
+2️⃣ Sono appassionato di viaggi e vorrei capire se posso trasformare questa passione in qualcosa di concreto
+
+3️⃣ Vorrei costruire nel tempo una vera attività professionale nel turismo
+
+4️⃣ Sono già nel settore turismo e voglio conoscere il vostro modello
+
+Rispondimi semplicemente con 1, 2, 3 o 4 👍
+
+A presto
+${operatorName} | iconsulentidiviaggio.it`;
+  }
+
+  async function saveAndOpenWhatsApp() {
+    if (!current || !phone(current.phone)) return toast("Numero di cellulare non disponibile", true);
+    const button = $("#firstMessage");
+    button.disabled = true;
+    button.textContent = "Salvataggio…";
+    try {
+      const saved = await saveContact(["Primo messaggio inviato"]);
+      if (!saved) return;
+      const url = "https://wa.me/39" + phone(current.phone) + "?text=" + encodeURIComponent(firstMessageText());
+      toast("Scheda aggiornata. Apertura WhatsApp…");
+      window.location.href = url;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Salva e apri WhatsApp";
+    }
   }
 
   async function saveNextStep(e) {
@@ -565,7 +632,8 @@
       }
       b.classList.toggle("pending");
     });
-    $("#updateContact").onclick = saveContact;
+    $("#updateContact").onclick = () => saveContact();
+    $("#firstMessage").onclick = saveAndOpenWhatsApp;
     $("#next").onclick = openNextStep;
     $("#cancelStep").onclick = () => $("#nextDialog").close();
     const noteField = $("#stepNote").closest(".field");

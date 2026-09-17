@@ -354,8 +354,10 @@
 
   function firstMessageText() {
     const operatorName = profile.name || "Stefano";
+    const contactFirstName = String(current.firstName || current.name || "").trim().split(/\s+/)[0];
+    const greeting = contactFirstName ? `Ciao ${contactFirstName} 😊` : "Ciao 😊";
     if (current.contactType === "DIRETTO") {
-      return `Ciao 😊 sono ${operatorName} di iconsulentidiviaggio.it.
+      return `${greeting} sono ${operatorName} di iconsulentidiviaggio.it.
 
 Ho visto la tua registrazione sul nostro sito sull’attività di Consulente di Viaggio. Sul sito, probabilmente, hai già avuto modo di vedere una prima presentazione dell’attività, i video introduttivi e anche i costi.
 
@@ -373,7 +375,7 @@ Grazie`;
     const dateLabel = bootcampDate
       ? new Intl.DateTimeFormat("it-IT", { day:"numeric", month:"long" }).format(bootcampDate)
       : "prossimo";
-    return `Ciao 😊 sono ${operatorName} di iconsulentidiviaggio.it.
+    return `${greeting} sono ${operatorName} di iconsulentidiviaggio.it.
 
 Ho visto la tua registrazione al Bootcamp del ${dateLabel} dedicato a chi vuole scoprire come funziona l’attività di Consulente di Viaggio 🌍✈️
 

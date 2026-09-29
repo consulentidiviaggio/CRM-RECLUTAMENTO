@@ -17,15 +17,13 @@
 
   const eventNames = [
     "Primo messaggio inviato", "Primo appuntamento fissato",
-    "Appuntamento fissato", "Chiamata fissata", "Chiamata effettuata",
-    "Non risponde", "Numero non raggiungibile", "Primo contatto completato",
-    "Materiale inviato", "Trailer inviato", "Interesse confermato",
+    "Non risponde", "Numero non raggiungibile", "Materiale inviato", "Interesse confermato",
     "Zoom proposta", "Bootcamp confermato", "Da richiamare",
-    "Non interessato", "Attivazione completata", "Attivo come consulente"
+    "Non interessato", "Attivo come consulente"
   ];
   const answerFields = [
     "MOTIVAZIONE PRINCIPALE", "ESPERIENZA TURISMO", "ORGANIZZA GIÀ VIAGGI",
-    "OBIETTIVO", "TEMPO DISPONIBILE", "RISULTATO ATTESO", "INTERESSE 1-10",
+    "OBIETTIVO", "TEMPO DISPONIBILE", "RISULTATO ATTESO",
     "OSTACOLO INIZIALE", "PROFILO", "CERTEZZA ATTIVITÀ 1-10",
     "CERTEZZA STRUTTURA 1-10", "CERTEZZA CAPACITÀ 1-10",
     "INTENZIONE DI PARTIRE 1-10", "FIDUCIA NEL REFERENTE", "NOTE CHIAMATA"
@@ -357,8 +355,11 @@
     // Usiamo il codice operatore per mantenere sempre il nome corretto,
     // anche se nel profilo Firebase è stato salvato in minuscolo.
     const operatorName = String(profile.operatorCode || "").toUpperCase() === "FB" ? "Fabio" : "Stefano";
+    const isFabio = operatorName === "Fabio";
     const contactFirstName = String(current.firstName || current.name || "").trim().split(/\s+/)[0];
-    const greeting = contactFirstName ? `Ciao ${contactFirstName} 😊` : "Ciao 😊";
+    const greeting = contactFirstName
+      ? `Ciao ${contactFirstName}${isFabio ? "" : " 😊"}`
+      : (isFabio ? "Ciao" : "Ciao 😊");
     if (current.contactType === "DIRETTO") {
       return `${greeting} sono ${operatorName} di iconsulentidiviaggio.it.
 
@@ -378,6 +379,28 @@ Grazie`;
     const dateLabel = bootcampDate
       ? new Intl.DateTimeFormat("it-IT", { day:"numeric", month:"long" }).format(bootcampDate)
       : "prossimo";
+    if (isFabio) {
+      return `${greeting} sono Fabio di iconsulentidiviaggio.it.
+
+Ho visto la tua registrazione al Bootcamp del ${dateLabel} dedicato a chi vuole scoprire come funziona l’attività di Consulente di Viaggio.
+
+Prima della diretta vorrei capire meglio cosa ti ha spinto a registrarti, così posso aiutarti a concentrarti sugli aspetti più utili per te.
+
+Quale di queste situazioni ti rappresenta di più?
+
+1) Cerco una seconda attività da affiancare al mio lavoro
+
+2) Sono appassionato di viaggi e vorrei capire se posso trasformare questa passione in qualcosa di concreto
+
+3) Vorrei costruire nel tempo una vera attività professionale nel turismo
+
+4) Sono già nel settore turismo e voglio conoscere il vostro modello
+
+Rispondimi semplicemente con 1, 2, 3 o 4.
+
+A presto
+Fabio | iconsulentidiviaggio.it`;
+    }
     return `${greeting} sono ${operatorName} di iconsulentidiviaggio.it.
 
 Ho visto la tua registrazione al Bootcamp del ${dateLabel} dedicato a chi vuole scoprire come funziona l’attività di Consulente di Viaggio 🌍✈️
@@ -598,20 +621,33 @@ ${operatorName} | iconsulentidiviaggio.it`;
       const ids = new Set(reportLeads.map(contact => contact.id));
       const eventSnap = await db.collection("events").where("operatorCode","==",profile.operatorCode).get();
       const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId) && !e.deleted);
-      const summary = reportLeads.map(c => ({
-        "LEAD ID":c.id, "NOME E COGNOME":c.name, "TELEFONO":c.phone || "", "EMAIL":c.email || "",
-        "REGIONE":c.region || "", "OPERATORE":profile.name, "DATA BOOTCAMP":formatDate(c.bootcampDate,false),
-        "STATO":c.status || "Da lavorare", "PROSSIMO STEP":c.nextStep || "", "DATA PROSSIMO STEP":formatDate(c.nextStepAt),
-        "TOTALE EVENTI":events.filter(e => e.leadId === c.id).length
-      }));
-      const detail = events.map(e => ({
-        "ID EVENTO":e.id, "LEAD ID":e.leadId, "DATA/ORA":formatDate(e.createdAt),
-        "OPERATORE":e.operatorName || profile.name, "EVENTO":e.type || "", "DETTAGLIO":e.detail || "", "NOTA":e.note || ""
-      }));
+      const eventTypesByLead = new Map();
+      events.forEach(event => {
+        if (!eventTypesByLead.has(event.leadId)) eventTypesByLead.set(event.leadId, new Set());
+        eventTypesByLead.get(event.leadId).add(String(event.type || "").trim());
+      });
+      const operatorName = String(profile.operatorCode || "").toUpperCase() === "FB" ? "Fabio" : "Stefano";
+      const summary = reportLeads.map(contact => {
+        const completedEvents = eventTypesByLead.get(contact.id) || new Set();
+        const row = {
+          "LEAD ID":contact.id,
+          "NOME E COGNOME":contact.name,
+          "TELEFONO":contact.phone || "",
+          "EMAIL":contact.email || "",
+          "REGIONE":contact.region || "",
+          "OPERATORE":operatorName,
+          "DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
+          "STATO":contact.status || "Da lavorare",
+          "PROSSIMO STEP":contact.nextStep || "",
+          "DATA PROSSIMO STEP":formatDate(contact.nextStepAt)
+        };
+        eventNames.forEach(eventName => { row[eventName] = completedEvents.has(eventName) ? 1 : 0; });
+        row["NOTE CHIAMATA"] = contact.answers?.["NOTE CHIAMATA"] || "";
+        return row;
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "RIEPILOGO");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail), "EVENTI");
-      XLSX.writeFile(wb, `Riepilogo Bootcamp - ${profile.name}.xlsx`);
+      XLSX.writeFile(wb, `Riepilogo Bootcamp - ${operatorName}.xlsx`);
       toast("Riepilogo Excel creato ✓");
     } catch (error) { toast(error.message, true); }
     finally { button.disabled = false; button.textContent = "Riepilogo Bootcamp"; }
@@ -633,8 +669,6 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#filter").onchange = renderLeads;
     $("#typeFilter").onchange = renderLeads;
     $("#back").onclick = () => { $("#leadSheet").classList.add("hidden"); document.body.style.overflow = ""; loadDashboard(); };
-    const nums = Array.from({length:10},(_,i) => `<button class="chip" type="button">${i+1}</button>`).join("");
-    $(".score").innerHTML = nums;
     $("#events").innerHTML = eventNames.map(n => `<button class="event" type="button">${n}</button>`).join("");
     $$('[data-group] .chip').forEach(c => c.onclick = e => { e.preventDefault(); [...c.parentElement.children].forEach(x => x.classList.toggle("active", x === c)); });
     $$('.event').forEach(b => b.onclick = () => {

@@ -563,6 +563,14 @@
         color: var(--red);
         text-decoration: line-through;
       }
+      .call-notes {
+        margin-top: 16px;
+        padding-top: 15px;
+        border-top: 1px solid var(--line);
+      }
+      .call-notes .note {
+        min-height: 105px;
+      }
       .update,
       .next {
         width: 100%;
@@ -973,10 +981,6 @@
               ><textarea class="note" data-key="RISULTATO ATTESO"></textarea>
             </div>
             <div class="question">
-              <label>Da 1 a 10 quanto ti interessa approfondire?</label>
-              <div class="chips score" data-group="INTERESSE 1-10"></div>
-            </div>
-            <div class="question">
               <label>Qual è la cosa che potrebbe frenarti di più?</label
               ><textarea class="note" data-key="OSTACOLO INIZIALE"></textarea>
             </div>
@@ -1055,6 +1059,15 @@
           <section class="panel">
             <h3>Eventi rapidi</h3>
             <div class="event-grid" id="events"></div>
+            <div class="question call-notes">
+              <label for="callNotes">Note chiamata</label>
+              <textarea
+                id="callNotes"
+                class="note"
+                data-key="NOTE CHIAMATA"
+                placeholder="Scrivi qui commenti, dubbi e informazioni emerse durante la chiamata…"
+              ></textarea>
+            </div>
             <button class="update" id="updateContact">Aggiorna scheda</button
             ><button class="next" id="next">Scegli il prossimo step</button>
           </section>
@@ -1100,20 +1113,14 @@
         eventNames = [
           "Primo messaggio inviato",
           "Primo appuntamento fissato",
-          "Appuntamento fissato",
-          "Chiamata fissata",
-          "Chiamata effettuata",
           "Non risponde",
           "Numero non raggiungibile",
-          "Primo contatto completato",
           "Materiale inviato",
-          "Trailer inviato",
           "Interesse confermato",
           "Zoom proposta",
           "Bootcamp confermato",
           "Da richiamare",
           "Non interessato",
-          "Attivazione completata",
           "Attivo come consulente",
         ],
         scoreNames = [
@@ -1558,6 +1565,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=32"></script>
+    <script src="firebase-crm.js?v=33"></script>
   </body>
 </html>

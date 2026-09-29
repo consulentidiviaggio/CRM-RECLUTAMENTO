@@ -248,7 +248,8 @@
   async function openLead(id) {
     current = leads.find(l => String(l.id) === String(id));
     if (!current) return;
-    $("#firstMessage").classList.toggle("hidden", profile.operatorCode !== "ST");
+    // Il messaggio iniziale è disponibile per entrambi gli operatori.
+    $("#firstMessage").classList.remove("hidden");
     currentEvents = [];
     savedEvents = new Set();
     $$('[data-group] .chip').forEach(c => c.classList.remove("active"));
@@ -353,7 +354,9 @@
   }
 
   function firstMessageText() {
-    const operatorName = profile.name || "Stefano";
+    // Usiamo il codice operatore per mantenere sempre il nome corretto,
+    // anche se nel profilo Firebase è stato salvato in minuscolo.
+    const operatorName = String(profile.operatorCode || "").toUpperCase() === "FB" ? "Fabio" : "Stefano";
     const contactFirstName = String(current.firstName || current.name || "").trim().split(/\s+/)[0];
     const greeting = contactFirstName ? `Ciao ${contactFirstName} 😊` : "Ciao 😊";
     if (current.contactType === "DIRETTO") {
@@ -405,12 +408,20 @@ ${operatorName} | iconsulentidiviaggio.it`;
     try {
       const saved = await saveContact(["Primo messaggio inviato"]);
       if (!saved) return;
-      const url = "https://wa.me/39" + phone(current.phone) + "?text=" + encodeURIComponent(firstMessageText());
-      toast("Scheda aggiornata. Apertura WhatsApp…");
+      const recipient = "39" + phone(current.phone);
+      const query = "phone=" + recipient + "&text=" + encodeURIComponent(firstMessageText());
+      const isIPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      // Su iPhone whatsapp-smb apre direttamente WhatsApp Business.
+      // Sugli altri dispositivi manteniamo il collegamento WhatsApp universale.
+      const url = isIPhone
+        ? "whatsapp-smb://send?" + query
+        : "https://wa.me/" + recipient + "?text=" + encodeURIComponent(firstMessageText());
+      toast("Scheda aggiornata. Apertura WhatsApp Business…");
       window.location.href = url;
     } finally {
       button.disabled = false;
-      button.textContent = "Salva e apri WhatsApp";
+      button.textContent = "Salva e apri WhatsApp Business";
     }
   }
 

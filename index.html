@@ -770,6 +770,141 @@
       .report-btn:disabled {
         opacity: 0.55;
       }
+      .workspace-choice main,
+      .events-app main {
+        padding-top: 42px;
+      }
+      .choice-intro {
+        text-align: center;
+        max-width: 680px;
+        margin: 0 auto 30px;
+      }
+      .choice-intro h1 {
+        margin: 7px 0 8px;
+        font-size: clamp(28px, 5vw, 44px);
+      }
+      .choice-intro p {
+        color: var(--muted);
+        margin: 0;
+      }
+      .choice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+        max-width: 850px;
+        margin: 0 auto;
+      }
+      .choice-card {
+        min-height: 220px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: #fff;
+        text-align: left;
+        box-shadow: 0 12px 35px #1111;
+      }
+      .choice-card:hover {
+        border-color: var(--o);
+        transform: translateY(-2px);
+      }
+      .choice-icon {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        margin-bottom: 24px;
+        border-radius: 15px;
+        background: #fff0e5;
+        color: var(--od);
+        font-size: 25px;
+        font-weight: 800;
+      }
+      .choice-card h2 {
+        margin: 0 0 7px;
+        font-size: 25px;
+      }
+      .choice-card p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .menu-button {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .events-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: end;
+        margin-bottom: 22px;
+      }
+      .events-heading h1 {
+        margin: 5px 0 0;
+        font-size: clamp(27px, 4vw, 39px);
+      }
+      .events-heading p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .event-cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .event-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        padding: 23px;
+        border: 1px solid var(--line);
+        border-left: 5px solid var(--o);
+        border-radius: 17px;
+        background: #fff;
+      }
+      .event-card .event-date {
+        display: block;
+        color: var(--od);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
+      .event-card h2 {
+        margin: 5px 0 4px;
+        font-size: 23px;
+      }
+      .event-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .event-card button {
+        flex: 0 0 auto;
+        border: 0;
+        border-radius: 11px;
+        padding: 10px 13px;
+        background: #171717;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      @media (max-width: 700px) {
+        .choice-grid,
+        .event-cards {
+          grid-template-columns: 1fr;
+        }
+        .choice-card {
+          min-height: 180px;
+        }
+        .events-heading {
+          display: block;
+        }
+      }
     </style>
   </head>
   <body>
@@ -812,6 +947,37 @@
         <div class="error" id="loginError"></div>
       </form>
     </section>
+    <div class="app workspace-choice hidden" id="workspaceChoice">
+      <header>
+        <div class="brand">
+          <img src="logo-iconsulenti.png" alt="iconsulentidiviaggio.it" />
+        </div>
+        <div class="operator">
+          <span>Operatore Stefano</span>
+          <div class="avatar">ST</div>
+          <button class="logout" data-logout>Esci</button>
+        </div>
+      </header>
+      <main>
+        <section class="choice-intro">
+          <div class="eyebrow">Area operativa</div>
+          <h1>Cosa vuoi gestire?</h1>
+          <p>Scegli l’area di lavoro da aprire.</p>
+        </section>
+        <section class="choice-grid">
+          <button type="button" class="choice-card" id="openContacts">
+            <span class="choice-icon">C</span>
+            <h2>Contatti</h2>
+            <p>Bootcamp, contatti diretti, appuntamenti e schede cliente.</p>
+          </button>
+          <button type="button" class="choice-card" id="openEventsArea">
+            <span class="choice-icon">E</span>
+            <h2>Eventi</h2>
+            <p>Visite nave, partecipanti, presenze e messaggi WhatsApp.</p>
+          </button>
+        </section>
+      </main>
+    </div>
     <div class="app hidden" id="operatorApp">
       <header>
         <div class="brand">
@@ -820,6 +986,7 @@
         <div class="operator">
           <span id="operatorLabel">Operatore Stefano</span>
           <div class="avatar" id="operatorAvatar">SF</div>
+          <button class="menu-button hidden" id="contactsMenuButton">Menu</button>
           <button class="logout" data-logout>Esci</button>
         </div>
       </header>
@@ -880,6 +1047,46 @@
         </div>
         <section class="contacts" id="contacts">
           <div class="empty">Caricamento contatti…</div>
+        </section>
+      </main>
+    </div>
+    <div class="app events-app hidden" id="eventsApp">
+      <header>
+        <div class="brand">
+          <img src="logo-iconsulenti.png" alt="iconsulentidiviaggio.it" />
+        </div>
+        <div class="operator">
+          <span>Area eventi</span>
+          <div class="avatar">ST</div>
+          <button class="menu-button" id="eventsMenuButton">Menu</button>
+          <button class="logout" data-logout>Esci</button>
+        </div>
+      </header>
+      <main>
+        <section class="events-heading">
+          <div>
+            <div class="eyebrow">Visite nave</div>
+            <h1>Eventi</h1>
+          </div>
+          <p>Seleziona un evento per gestire i partecipanti.</p>
+        </section>
+        <section class="event-cards">
+          <article class="event-card">
+            <div><span class="event-date">4 ottobre 2026</span><h2>Venezia</h2><p>Visita nave con i consulenti</p></div>
+            <button type="button" data-ship-event="venezia-2026-10-04">Apri evento</button>
+          </article>
+          <article class="event-card">
+            <div><span class="event-date">17 ottobre 2026</span><h2>Napoli</h2><p>Visita nave con i consulenti</p></div>
+            <button type="button" data-ship-event="napoli-2026-10-17">Apri evento</button>
+          </article>
+          <article class="event-card">
+            <div><span class="event-date">29 ottobre 2026</span><h2>Savona</h2><p>Visita nave con i consulenti</p></div>
+            <button type="button" data-ship-event="savona-2026-10-29">Apri evento</button>
+          </article>
+          <article class="event-card">
+            <div><span class="event-date">8 novembre 2026</span><h2>Genova</h2><p>Visita nave con i consulenti</p></div>
+            <button type="button" data-ship-event="genova-2026-11-08">Apri evento</button>
+          </article>
         </section>
       </main>
     </div>
@@ -1565,6 +1772,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=33"></script>
+    <script src="firebase-crm.js?v=34"></script>
   </body>
 </html>

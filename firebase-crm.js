@@ -116,11 +116,27 @@
     $("#operatorLabel").textContent = "Operatore " + name;
     $("#operatorAvatar").textContent = name.slice(0, 2).toUpperCase();
     $("#operatorGreeting").textContent = "Buongiorno, " + name;
+    $("#contactsMenuButton").classList.toggle("hidden", String(profile?.operatorCode || "").toUpperCase() !== "ST");
+  }
+  function isStefano() {
+    return String(profile?.operatorCode || "").toUpperCase() === "ST";
+  }
+  function hideWorkAreas() {
+    $("#workspaceChoice").classList.add("hidden");
+    $("#operatorApp").classList.add("hidden");
+    $("#eventsApp").classList.add("hidden");
+    $("#adminApp").classList.add("hidden");
+  }
+  function openWorkspaceChoice() {
+    hideWorkAreas();
+    $("#workspaceChoice").classList.remove("hidden");
   }
   function showApp(level) {
     $("#loginPage").classList.add("hidden");
-    $("#operatorApp").classList.toggle("hidden", level !== "operator");
-    $("#adminApp").classList.toggle("hidden", level !== "admin");
+    hideWorkAreas();
+    if (level === "admin") return $("#adminApp").classList.remove("hidden");
+    if (isStefano()) return $("#workspaceChoice").classList.remove("hidden");
+    $("#operatorApp").classList.remove("hidden");
   }
 
   async function login(e) {
@@ -138,7 +154,8 @@
       }
       applyOperator(profile.name);
       showApp(requestedLevel);
-      if (requestedLevel === "admin") renderAdmin(); else await loadDashboard();
+      if (requestedLevel === "admin") renderAdmin();
+      else if (!isStefano()) await loadDashboard();
     } catch (error) {
       $("#loginError").textContent = authMessage(error);
     } finally {
@@ -665,6 +682,20 @@ ${operatorName} | iconsulentidiviaggio.it`;
     });
     $("#loginForm").onsubmit = login;
     $$('[data-logout]').forEach(b => b.onclick = async () => { await auth.signOut(); location.reload(); });
+    $("#openContacts").onclick = async () => {
+      hideWorkAreas();
+      $("#operatorApp").classList.remove("hidden");
+      await loadDashboard();
+    };
+    $("#openEventsArea").onclick = () => {
+      hideWorkAreas();
+      $("#eventsApp").classList.remove("hidden");
+    };
+    $("#contactsMenuButton").onclick = openWorkspaceChoice;
+    $("#eventsMenuButton").onclick = openWorkspaceChoice;
+    $$('[data-ship-event]').forEach(button => button.onclick = () => {
+      toast("Menu evento pronto. Nel prossimo passaggio colleghiamo partecipanti e messaggi WhatsApp.");
+    });
     $("#search").oninput = renderLeads;
     $("#filter").onchange = renderLeads;
     $("#typeFilter").onchange = renderLeads;

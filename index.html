@@ -909,6 +909,11 @@
       .attendance-buttons .absent { background:#b93636; }
       .attendance-buttons button:not(.active) { opacity:.42; }
       .attendance-buttons button.active { box-shadow:0 0 0 3px #1112; opacity:1; }
+      .participant-controls { display:grid; gap:9px; justify-items:end; }
+      .role-choice, .whatsapp-event-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
+      .role-choice button, .whatsapp-event-actions button { border:1px solid var(--line); border-radius:9px; padding:8px 10px; background:#fff; color:#171717; font-size:11px; font-weight:800; }
+      .role-choice button.active { border-color:var(--o); background:#fff0e5; color:var(--od); }
+      .whatsapp-event-actions button { border-color:#168a45; color:#13753c; }
       @media (max-width: 700px) {
         .choice-grid,
         .event-cards {
@@ -923,6 +928,9 @@
         .participant-card { grid-template-columns:1fr; }
         .attendance-buttons button { flex:1; }
         .ship-event-toolbar { align-items:flex-start; flex-direction:column; }
+        .participant-controls { justify-items:stretch; }
+        .role-choice, .whatsapp-event-actions { justify-content:stretch; }
+        .role-choice button, .whatsapp-event-actions button { flex:1; }
       }
     </style>
   </head>
@@ -1784,6 +1792,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=35"></script>
+    <script src="firebase-crm.js?v=36"></script>
   </body>
 </html>

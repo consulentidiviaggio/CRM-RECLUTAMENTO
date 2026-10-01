@@ -175,18 +175,76 @@
     $("#shipEventCount").textContent = `${people.length} partecipanti`;
     $("#shipParticipants").innerHTML = people.map(person => {
       const status = norm(person.attendanceStatus);
-      const details = person.isConsultant
+      const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
+      const canChooseRole = person.surnameMatches === true || (person.surnameMatches == null && person.isConsultant === true);
+      const details = isConsultant
         ? `<span class="participant-kind">Consulente</span><h3>${esc(person.lastName)} ${esc(person.firstName)}</h3><p>${esc(person.phone || "Cellulare non indicato")}</p><p>${esc(person.email || "Email non indicata")}</p>`
         : `<span class="participant-kind">Partecipante</span><h3>${esc(person.lastName)} ${esc(person.firstName)}</h3><p>Consulente: ${esc(person.consultantSurname || "Non indicato")}</p>`;
+      const roleChoice = canChooseRole ? `<div class="role-choice">
+        <button type="button" class="${isConsultant ? "active" : ""}" data-role="Consulente">Consulente</button>
+        <button type="button" class="${!isConsultant ? "active" : ""}" data-role="Partecipante">Partecipante</button>
+      </div>` : "";
+      const whatsapp = isConsultant ? `<div class="whatsapp-event-actions">
+        <button type="button" data-event-whatsapp="MSC">WhatsApp MSC</button>
+        <button type="button" data-event-whatsapp="Costa">WhatsApp Costa</button>
+        <button type="button" data-event-whatsapp="LIBERO">Messaggio libero</button>
+      </div>` : "";
       return `<article class="participant-card" data-participant-id="${esc(person.id)}">
         <div>${details}</div>
-        <div class="attendance-buttons">
-          <button type="button" class="present ${status === "PRESENTE" ? "active" : ""}" data-attendance="Presente">Presente</button>
-          <button type="button" class="absent ${status === "ASSENTE" ? "active" : ""}" data-attendance="Assente">Assente</button>
+        <div class="participant-controls">
+          ${roleChoice}${whatsapp}
+          <div class="attendance-buttons">
+            <button type="button" class="present ${status === "PRESENTE" ? "active" : ""}" data-attendance="Presente">Presente</button>
+            <button type="button" class="absent ${status === "ASSENTE" ? "active" : ""}" data-attendance="Assente">Assente</button>
+          </div>
         </div>
       </article>`;
     }).join("");
     $$("[data-attendance]").forEach(button => button.onclick = () => saveAttendance(button));
+    $$("[data-role]").forEach(button => button.onclick = () => saveParticipantRole(button));
+    $$("[data-event-whatsapp]").forEach(button => button.onclick = () => openEventWhatsApp(button));
+  }
+
+  async function saveParticipantRole(button) {
+    const card = button.closest("[data-participant-id]");
+    const person = shipParticipants.find(item => item.id === card.dataset.participantId);
+    if (!person) return;
+    button.disabled = true;
+    try {
+      await db.collection("shipParticipants").doc(person.id).update({
+        roleOverride:button.dataset.role,
+        roleUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        roleUpdatedBy:profile.name
+      });
+      person.roleOverride = button.dataset.role;
+      openShipEvent(selectedShipEvent);
+      toast("Tipologia salvata: " + button.dataset.role + " ✓");
+    } catch (error) { toast(error.message, true); }
+    finally { button.disabled = false; }
+  }
+
+  function shipEventDateLabel(eventName) {
+    const months = "GENNAIO|FEBBRAIO|MARZO|APRILE|MAGGIO|GIUGNO|LUGLIO|AGOSTO|SETTEMBRE|OTTOBRE|NOVEMBRE|DICEMBRE";
+    const match = String(eventName || "").toUpperCase().match(new RegExp("(\\d{1,2})\\s+(" + months + ")"));
+    return match ? `${Number(match[1])} ${match[2].toLowerCase()}` : String(eventName || "").trim();
+  }
+
+  function openEventWhatsApp(button) {
+    const card = button.closest("[data-participant-id]");
+    const person = shipParticipants.find(item => item.id === card.dataset.participantId);
+    if (!person || !phone(person.phone)) return toast("Numero di cellulare non disponibile", true);
+    const company = button.dataset.eventWhatsapp;
+    const firstName = String(person.firstName || "").trim().split(/\s+/)[0] || "";
+    const date = shipEventDateLabel(person.eventName);
+    const message = company === "LIBERO" ? "" :
+      `Ciao ${firstName} 😊, ci vediamo il ${date} per la visita nave ${company}.\n\nSalva questo numero per ricevere via broadcast ulteriori comunicazioni.`;
+    const recipient = "39" + phone(person.phone);
+    const query = "phone=" + recipient + (message ? "&text=" + encodeURIComponent(message) : "");
+    const isIPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    window.location.href = isIPhone
+      ? "whatsapp-smb://send?" + query
+      : "https://wa.me/" + recipient + (message ? "?text=" + encodeURIComponent(message) : "");
   }
 
   async function saveAttendance(button) {
@@ -209,16 +267,19 @@
   }
 
   function exportShipEvent() {
-    const rows = shipParticipants.filter(person => person.eventName === selectedShipEvent).map(person => ({
+    const rows = shipParticipants.filter(person => person.eventName === selectedShipEvent).map(person => {
+      const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
+      return ({
       "VISITA NAVE":person.eventName,
       "COGNOME":person.lastName,
       "NOME":person.firstName,
-      "CELLULARE":person.isConsultant ? (person.phone || "") : "",
-      "MAIL @BORSAVIAGGI.NET":person.isConsultant ? (person.email || "") : "",
+      "CELLULARE":isConsultant ? (person.phone || "") : "",
+      "MAIL @BORSAVIAGGI.NET":isConsultant ? (person.email || "") : "",
       "COGNOME CONSULENTE":person.consultantSurname || "",
-      "TIPO":person.isConsultant ? "Consulente" : "Partecipante",
+      "TIPO":isConsultant ? "Consulente" : "Partecipante",
       "PRESENZA":person.attendanceStatus || "Da registrare"
-    }));
+      });
+    });
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "PARTECIPANTI");
     const filename = selectedShipEvent.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "Evento";

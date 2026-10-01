@@ -893,6 +893,22 @@
         font-size: 12px;
         font-weight: 700;
       }
+      .ship-event-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+      .ship-event-toolbar h2 { margin:0; }
+      .ship-event-toolbar p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+      .ship-event-actions, .attendance-buttons { display:flex; gap:8px; }
+      .ship-event-actions button { border:1px solid var(--line); border-radius:10px; padding:10px 13px; background:#fff; font-weight:700; }
+      .ship-event-actions .export-event { border-color:var(--o); color:var(--od); }
+      .participant-list { display:grid; gap:11px; }
+      .participant-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:center; padding:18px; border:1px solid var(--line); border-radius:15px; background:#fff; }
+      .participant-card h3 { margin:0 0 5px; font-size:18px; }
+      .participant-card p { margin:2px 0; color:var(--muted); font-size:13px; }
+      .participant-kind { display:inline-block; margin-bottom:7px; padding:4px 8px; border-radius:999px; background:#fff0e5; color:var(--od); font-size:10px; font-weight:800; text-transform:uppercase; }
+      .attendance-buttons button { min-width:92px; border:1px solid transparent; border-radius:10px; padding:10px 12px; color:#fff; font-weight:800; }
+      .attendance-buttons .present { background:#258343; }
+      .attendance-buttons .absent { background:#b93636; }
+      .attendance-buttons button:not(.active) { opacity:.42; }
+      .attendance-buttons button.active { box-shadow:0 0 0 3px #1112; opacity:1; }
       @media (max-width: 700px) {
         .choice-grid,
         .event-cards {
@@ -904,6 +920,9 @@
         .events-heading {
           display: block;
         }
+        .participant-card { grid-template-columns:1fr; }
+        .attendance-buttons button { flex:1; }
+        .ship-event-toolbar { align-items:flex-start; flex-direction:column; }
       }
     </style>
   </head>
@@ -1070,23 +1089,16 @@
           </div>
           <p>Seleziona un evento per gestire i partecipanti.</p>
         </section>
-        <section class="event-cards">
-          <article class="event-card">
-            <div><span class="event-date">4 ottobre 2026</span><h2>Venezia</h2><p>Visita nave con i consulenti</p></div>
-            <button type="button" data-ship-event="venezia-2026-10-04">Apri evento</button>
-          </article>
-          <article class="event-card">
-            <div><span class="event-date">17 ottobre 2026</span><h2>Napoli</h2><p>Visita nave con i consulenti</p></div>
-            <button type="button" data-ship-event="napoli-2026-10-17">Apri evento</button>
-          </article>
-          <article class="event-card">
-            <div><span class="event-date">29 ottobre 2026</span><h2>Savona</h2><p>Visita nave con i consulenti</p></div>
-            <button type="button" data-ship-event="savona-2026-10-29">Apri evento</button>
-          </article>
-          <article class="event-card">
-            <div><span class="event-date">8 novembre 2026</span><h2>Genova</h2><p>Visita nave con i consulenti</p></div>
-            <button type="button" data-ship-event="genova-2026-11-08">Apri evento</button>
-          </article>
+        <section class="event-cards" id="shipEventCards"><div class="empty">Caricamento eventi…</div></section>
+        <section class="hidden" id="shipEventDetail">
+          <div class="ship-event-toolbar">
+            <div><h2 id="shipEventTitle"></h2><p id="shipEventCount"></p></div>
+            <div class="ship-event-actions">
+              <button type="button" id="backToShipEvents">Torna agli eventi</button>
+              <button type="button" class="export-event" id="exportShipEvent">Esporta Excel</button>
+            </div>
+          </div>
+          <div class="participant-list" id="shipParticipants"></div>
         </section>
       </main>
     </div>
@@ -1772,6 +1784,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=34"></script>
+    <script src="firebase-crm.js?v=35"></script>
   </body>
 </html>

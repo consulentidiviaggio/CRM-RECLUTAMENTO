@@ -9,8 +9,11 @@ const FBSYNC_CONFIG = Object.freeze({
   sheetName: 'CONTATTI',
   directSpreadsheetId: '1oFpqU0RciF6ftmcS0JXYQlZB2FcVKjfpkpivafvjGOc',
   directSheetName: 'DESTINAZIONE',
+  eventsSpreadsheetId: '1ZCj-OLlc-KcKEZoT5HWg4_SwDWSHLC2VfQ-37rcQetU',
+  eventsSheetName: 'Foglio1',
   timeZone: 'Europe/Rome',
-  hashProperty: 'FIREBASE_CONTACT_HASHES_V1'
+  hashProperty: 'FIREBASE_CONTACT_HASHES_V1',
+  eventHashProperty: 'FIREBASE_SHIP_EVENT_HASHES_V1'
 });
 
 function sincronizzaContattiFirebase() {
@@ -118,8 +121,9 @@ function sincronizzaContattiFirebase() {
     for (let start = 0; start < pending.length; start += 400) {
       fbCommitContacts_(pending.slice(start, start + 400));
     }
+    const eventResult = fbSyncShipEvents_();
     PropertiesService.getScriptProperties().setProperty(FBSYNC_CONFIG.hashProperty, JSON.stringify(nextHashes));
-    return {ok: true, aggiornati: pending.length, ignorati: ignored};
+    return {ok: true, aggiornati: pending.length, ignorati: ignored, partecipantiEventi: eventResult.aggiornati};
   } finally {
     lock.releaseLock();
   }
@@ -147,7 +151,62 @@ function testConnessioneFirebase() {
 
 function forzaProssimaSincronizzazioneFirebase() {
   PropertiesService.getScriptProperties().deleteProperty(FBSYNC_CONFIG.hashProperty);
+  PropertiesService.getScriptProperties().deleteProperty(FBSYNC_CONFIG.eventHashProperty);
   return sincronizzaContattiFirebase();
+}
+
+function fbSyncShipEvents_() {
+  const sheet = SpreadsheetApp.openById(FBSYNC_CONFIG.eventsSpreadsheetId).getSheetByName(FBSYNC_CONFIG.eventsSheetName);
+  if (!sheet) throw new Error('Scheda eventi ' + FBSYNC_CONFIG.eventsSheetName + ' non trovata');
+  if (sheet.getLastRow() < 2) return {aggiornati: 0};
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const headers = values.shift().map(fbNorm_);
+  const columns = {};
+  headers.forEach((header, index) => { if (header) columns[header] = index; });
+  const previousHashes = fbReadPropertyJson_(FBSYNC_CONFIG.eventHashProperty);
+  const nextHashes = Object.assign({}, previousHashes);
+  const pending = [];
+  values.forEach(row => {
+    if (!row.some(value => value !== '' && value != null)) return;
+    const eventName = fbText_(fbPick_(row, columns, ['VISITA NAVE']));
+    const lastName = fbText_(fbPick_(row, columns, ['COGNOME']));
+    const firstName = fbText_(fbPick_(row, columns, ['NOME']));
+    const phone = fbPhone_(fbPick_(row, columns, ['CELLULARE']));
+    const email = fbText_(fbPick_(row, columns, ['MAIL @BORSAVIAGGI.NET', 'EMAIL', 'MAIL'])).toLowerCase();
+    const consultantSurname = fbText_(fbPick_(row, columns, ['COGNOME CONSULENTE']));
+    if (!eventName || !lastName || !firstName) return;
+    const lastKey = fbPersonKey_(lastName);
+    const consultantKey = fbPersonKey_(consultantSurname);
+    const isConsultant = consultantKey === lastKey || consultantKey.indexOf(lastKey + ' ') === 0;
+    const participantId = 'SHIP-' + fbHash_(eventName + '|' + lastName + '|' + firstName + '|' + phone + '|' + consultantSurname).slice(0, 28).toUpperCase();
+    const data = {participantId, eventName, lastName, firstName, phone, email, consultantSurname, isConsultant};
+    const hash = fbHash_(data);
+    if (previousHashes[participantId] === hash) return;
+    nextHashes[participantId] = hash;
+    pending.push({participantId, data});
+  });
+  for (let start = 0; start < pending.length; start += 400) {
+    const now = new Date();
+    const writes = pending.slice(start, start + 400).map(item => {
+      const fields = Object.assign({}, item.data, {updatedAt: now});
+      return {
+        update: {name:'projects/' + FBSYNC_CONFIG.projectId + '/databases/(default)/documents/shipParticipants/' + encodeURIComponent(item.participantId), fields:fbFirestoreFields_(fields)},
+        updateMask: {fieldPaths:Object.keys(fields)}
+      };
+    });
+    fbFetchJson_('https://firestore.googleapis.com/v1/projects/' + FBSYNC_CONFIG.projectId + '/databases/(default)/documents:commit', {method:'post', payload:JSON.stringify({writes:writes})});
+  }
+  PropertiesService.getScriptProperties().setProperty(FBSYNC_CONFIG.eventHashProperty, JSON.stringify(nextHashes));
+  return {aggiornati:pending.length};
+}
+
+function fbReadPropertyJson_(key) {
+  const value = PropertiesService.getScriptProperties().getProperty(key);
+  try { return value ? JSON.parse(value) : {}; } catch (error) { return {}; }
+}
+
+function fbPersonKey_(value) {
+  return fbNorm_(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
 }
 
 function fbExistingContactIds_() {

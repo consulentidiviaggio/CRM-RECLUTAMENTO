@@ -36,6 +36,8 @@
   let current = null;
   let currentEvents = [];
   let savedEvents = new Set();
+  let shipParticipants = [];
+  let selectedShipEvent = "";
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
 
@@ -130,6 +132,98 @@
   function openWorkspaceChoice() {
     hideWorkAreas();
     $("#workspaceChoice").classList.remove("hidden");
+  }
+
+  async function loadShipEvents() {
+    const cards = $("#shipEventCards");
+    $("#shipEventDetail").classList.add("hidden");
+    cards.classList.remove("hidden");
+    cards.innerHTML = '<div class="empty">Caricamento eventi…</div>';
+    try {
+      const snap = await db.collection("shipParticipants").get();
+      shipParticipants = snap.docs.map(doc => ({ id:doc.id, ...doc.data() }));
+      const groups = new Map();
+      shipParticipants.forEach(person => {
+        const name = String(person.eventName || "").trim();
+        if (!name) return;
+        if (!groups.has(name)) groups.set(name, []);
+        groups.get(name).push(person);
+      });
+      if (!groups.size) {
+        cards.innerHTML = '<div class="empty">Nessun evento sincronizzato. Esegui la sincronizzazione da Google Sheets.</div>';
+        return;
+      }
+      cards.innerHTML = [...groups.entries()].sort((a,b) => a[0].localeCompare(b[0], "it")).map(([name, people]) => `
+        <article class="event-card">
+          <div><span class="event-date">Visita nave</span><h2>${esc(name)}</h2><p>${people.length} partecipanti</p></div>
+          <button type="button" data-ship-event="${esc(name)}">Apri evento</button>
+        </article>`).join("");
+      $$('[data-ship-event]').forEach(button => button.onclick = () => openShipEvent(button.dataset.shipEvent));
+    } catch (error) {
+      cards.innerHTML = '<div class="empty">Impossibile caricare gli eventi.</div>';
+      toast(error.message, true);
+    }
+  }
+
+  function openShipEvent(eventName) {
+    selectedShipEvent = eventName;
+    $("#shipEventCards").classList.add("hidden");
+    $("#shipEventDetail").classList.remove("hidden");
+    const people = shipParticipants.filter(person => person.eventName === eventName)
+      .sort((a,b) => (`${a.lastName} ${a.firstName}`).localeCompare(`${b.lastName} ${b.firstName}`, "it"));
+    $("#shipEventTitle").textContent = eventName;
+    $("#shipEventCount").textContent = `${people.length} partecipanti`;
+    $("#shipParticipants").innerHTML = people.map(person => {
+      const status = norm(person.attendanceStatus);
+      const details = person.isConsultant
+        ? `<span class="participant-kind">Consulente</span><h3>${esc(person.lastName)} ${esc(person.firstName)}</h3><p>${esc(person.phone || "Cellulare non indicato")}</p><p>${esc(person.email || "Email non indicata")}</p>`
+        : `<span class="participant-kind">Partecipante</span><h3>${esc(person.lastName)} ${esc(person.firstName)}</h3><p>Consulente: ${esc(person.consultantSurname || "Non indicato")}</p>`;
+      return `<article class="participant-card" data-participant-id="${esc(person.id)}">
+        <div>${details}</div>
+        <div class="attendance-buttons">
+          <button type="button" class="present ${status === "PRESENTE" ? "active" : ""}" data-attendance="Presente">Presente</button>
+          <button type="button" class="absent ${status === "ASSENTE" ? "active" : ""}" data-attendance="Assente">Assente</button>
+        </div>
+      </article>`;
+    }).join("");
+    $$("[data-attendance]").forEach(button => button.onclick = () => saveAttendance(button));
+  }
+
+  async function saveAttendance(button) {
+    const card = button.closest("[data-participant-id]");
+    const person = shipParticipants.find(item => item.id === card.dataset.participantId);
+    if (!person) return;
+    const status = button.dataset.attendance;
+    button.disabled = true;
+    try {
+      await db.collection("shipParticipants").doc(person.id).update({
+        attendanceStatus:status,
+        attendanceUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        attendanceUpdatedBy:profile.name
+      });
+      person.attendanceStatus = status;
+      card.querySelectorAll("[data-attendance]").forEach(item => item.classList.toggle("active", item === button));
+      toast(status + " salvato ✓");
+    } catch (error) { toast(error.message, true); }
+    finally { button.disabled = false; }
+  }
+
+  function exportShipEvent() {
+    const rows = shipParticipants.filter(person => person.eventName === selectedShipEvent).map(person => ({
+      "VISITA NAVE":person.eventName,
+      "COGNOME":person.lastName,
+      "NOME":person.firstName,
+      "CELLULARE":person.isConsultant ? (person.phone || "") : "",
+      "MAIL @BORSAVIAGGI.NET":person.isConsultant ? (person.email || "") : "",
+      "COGNOME CONSULENTE":person.consultantSurname || "",
+      "TIPO":person.isConsultant ? "Consulente" : "Partecipante",
+      "PRESENZA":person.attendanceStatus || "Da registrare"
+    }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "PARTECIPANTI");
+    const filename = selectedShipEvent.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "Evento";
+    XLSX.writeFile(workbook, `Riepilogo ${filename}.xlsx`);
+    toast("Riepilogo Excel creato ✓");
   }
   function showApp(level) {
     $("#loginPage").classList.add("hidden");
@@ -687,15 +781,15 @@ ${operatorName} | iconsulentidiviaggio.it`;
       $("#operatorApp").classList.remove("hidden");
       await loadDashboard();
     };
-    $("#openEventsArea").onclick = () => {
+    $("#openEventsArea").onclick = async () => {
       hideWorkAreas();
       $("#eventsApp").classList.remove("hidden");
+      await loadShipEvents();
     };
     $("#contactsMenuButton").onclick = openWorkspaceChoice;
     $("#eventsMenuButton").onclick = openWorkspaceChoice;
-    $$('[data-ship-event]').forEach(button => button.onclick = () => {
-      toast("Menu evento pronto. Nel prossimo passaggio colleghiamo partecipanti e messaggi WhatsApp.");
-    });
+    $("#backToShipEvents").onclick = loadShipEvents;
+    $("#exportShipEvent").onclick = exportShipEvent;
     $("#search").oninput = renderLeads;
     $("#filter").onchange = renderLeads;
     $("#typeFilter").onchange = renderLeads;

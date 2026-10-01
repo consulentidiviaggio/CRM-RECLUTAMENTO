@@ -899,6 +899,10 @@
       .ship-event-actions, .attendance-buttons { display:flex; gap:8px; }
       .ship-event-actions button { border:1px solid var(--line); border-radius:10px; padding:10px 13px; background:#fff; font-weight:700; }
       .ship-event-actions .export-event { border-color:var(--o); color:var(--od); }
+      .event-time-editor { display:flex; align-items:end; gap:9px; margin:0 0 18px; padding:14px; border:1px solid var(--line); border-radius:13px; background:#fff; }
+      .event-time-editor label { display:grid; gap:5px; color:var(--muted); font-size:11px; font-weight:700; }
+      .event-time-editor input { min-width:135px; border:1px solid var(--line); border-radius:9px; padding:9px 10px; font:inherit; }
+      .event-time-editor button { border:0; border-radius:9px; padding:10px 13px; background:var(--o); color:#fff; font-weight:800; }
       .participant-list { display:grid; gap:11px; }
       .participant-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:center; padding:18px; border:1px solid var(--line); border-radius:15px; background:#fff; }
       .participant-card h3 { margin:0 0 5px; font-size:18px; }
@@ -931,6 +935,7 @@
         .participant-controls { justify-items:stretch; }
         .role-choice, .whatsapp-event-actions { justify-content:stretch; }
         .role-choice button, .whatsapp-event-actions button { flex:1; }
+        .event-time-editor { align-items:stretch; flex-direction:column; }
       }
     </style>
   </head>
@@ -1105,6 +1110,10 @@
               <button type="button" id="backToShipEvents">Torna agli eventi</button>
               <button type="button" class="export-event" id="exportShipEvent">Esporta Excel</button>
             </div>
+          </div>
+          <div class="event-time-editor">
+            <label>Orario imbarco<input id="shipEmbarkTime" type="time" value="10:30" /></label>
+            <button type="button" id="saveShipEmbarkTime">Salva orario</button>
           </div>
           <div class="participant-list" id="shipParticipants"></div>
         </section>
@@ -1792,6 +1801,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=36"></script>
+    <script src="firebase-crm.js?v=39"></script>
   </body>
 </html>

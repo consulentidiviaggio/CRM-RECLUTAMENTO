@@ -177,9 +177,10 @@ function fbSyncShipEvents_() {
     if (!eventName || !lastName || !firstName) return;
     const lastKey = fbPersonKey_(lastName);
     const consultantKey = fbPersonKey_(consultantSurname);
-    const isConsultant = consultantKey === lastKey || consultantKey.indexOf(lastKey + ' ') === 0;
+    const surnameMatches = consultantKey === lastKey || consultantKey.indexOf(lastKey + ' ') === 0;
+    const isConsultant = surnameMatches;
     const participantId = 'SHIP-' + fbHash_(eventName + '|' + lastName + '|' + firstName + '|' + phone + '|' + consultantSurname).slice(0, 28).toUpperCase();
-    const data = {participantId, eventName, lastName, firstName, phone, email, consultantSurname, isConsultant};
+    const data = {participantId, eventName, lastName, firstName, phone, email, consultantSurname, surnameMatches, isConsultant};
     const hash = fbHash_(data);
     if (previousHashes[participantId] === hash) return;
     nextHashes[participantId] = hash;

@@ -173,6 +173,7 @@
       .sort((a,b) => (`${a.lastName} ${a.firstName}`).localeCompare(`${b.lastName} ${b.firstName}`, "it"));
     $("#shipEventTitle").textContent = eventName;
     $("#shipEventCount").textContent = `${people.length} partecipanti`;
+    $("#shipEmbarkTime").value = String(people.find(person => person.embarkTime)?.embarkTime || "10:30");
     $("#shipParticipants").innerHTML = people.map(person => {
       const status = norm(person.attendanceStatus);
       const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
@@ -229,15 +230,74 @@
     return match ? `${Number(match[1])} ${match[2].toLowerCase()}` : String(eventName || "").trim();
   }
 
+  function shipEventInfo(eventName) {
+    const text = String(eventName || "").trim().replace(/\s+/g, " ");
+    const months = {GENNAIO:0,FEBBRAIO:1,MARZO:2,APRILE:3,MAGGIO:4,GIUGNO:5,LUGLIO:6,AGOSTO:7,SETTEMBRE:8,OTTOBRE:9,NOVEMBRE:10,DICEMBRE:11};
+    const match = text.toUpperCase().match(/^(.*?)\s+(\d{1,2})\s+(GENNAIO|FEBBRAIO|MARZO|APRILE|MAGGIO|GIUGNO|LUGLIO|AGOSTO|SETTEMBRE|OTTOBRE|NOVEMBRE|DICEMBRE)(?:\s+(\d{4}))?\s+(MSC|COSTA)\s+(.+)$/);
+    if (!match) return {city:"", date:shipEventDateLabel(text), weekday:"", ship:text};
+    const city = match[1].trim();
+    const day = Number(match[2]);
+    const monthName = match[3];
+    const year = Number(match[4] || new Date().getFullYear());
+    const company = match[5];
+    const ship = `${company} ${match[6].trim()}`;
+    const date = new Date(year, months[monthName], day, 12);
+    const weekday = new Intl.DateTimeFormat("it-IT", {weekday:"long"}).format(date).toUpperCase();
+    return {city, date:`${day} ${monthName}`, weekday, ship};
+  }
+
+  function eventWhatsAppMessage(company, eventName, embarkTime) {
+    const info = shipEventInfo(eventName);
+    const timeParts = String(embarkTime || "10:30").split(":").map(Number);
+    const totalMinutes = ((timeParts[0] || 0) * 60 + (timeParts[1] || 0) - 30 + 1440) % 1440;
+    const appointmentTime = `${String(Math.floor(totalMinutes / 60)).padStart(2,"0")}:${String(totalMinutes % 60).padStart(2,"0")}`;
+    if (company === "Costa") {
+      const terminalLink = norm(info.city).includes("VENEZIA") ? "  https://vtp.it/passeggeri/come-raggiungerci/" : "";
+      return `📍 *${info.weekday ? info.weekday + " " : ""}${info.date} – ${info.city}*
+
+*Conferma di partecipazione*
+
+🚢 *${info.ship}*
+
+📍 *Appuntamento: ore ${appointmentTime} – Terminal Crociere*${terminalLink}
+🕥 *Imbarco: ${embarkTime}*
+📸 Visita della nave
+🍽️ Pranzo a bordo
+☕ Momento caffè
+🕒 *Sbarco indicativo: 15:30*
+
+‼️ Porta con te il documento d’identità che hai comunicato
+📞 Salva questo numero per eventuali comunicazioni: *320 2932994*
+
+👉 Ci vediamo a bordo 🚢`;
+    }
+    return `Gentile Consulente, 👋
+
+*Conferma di partecipazione* 🛳️
+🚢 *${info.ship}*
+
+👉 *I pass MSC* sono stati inviati alla tua casella di posta *@borsaviaggi.net*
+Stampali e portali con te per salire a bordo!
+
+📍 *${info.city} – ${info.date}*
+⏰ *Appuntamento sottobordo ore ${appointmentTime}*
+➡️ *Imbarco ore ${embarkTime}*
+
+Nel frattempo, ti chiediamo una cosa importante:
+👉 *salva subito questo numero in rubrica: 3202932994*
+
+Le prossime comunicazioni verranno inviate tramite *lista broadcast WhatsApp*, che funziona *solo se il numero è salvato nei contatti* 📲
+
+Ci vediamo a bordo! 🚢`;
+  }
+
   function openEventWhatsApp(button) {
     const card = button.closest("[data-participant-id]");
     const person = shipParticipants.find(item => item.id === card.dataset.participantId);
     if (!person || !phone(person.phone)) return toast("Numero di cellulare non disponibile", true);
     const company = button.dataset.eventWhatsapp;
-    const firstName = String(person.firstName || "").trim().split(/\s+/)[0] || "";
-    const date = shipEventDateLabel(person.eventName);
-    const message = company === "LIBERO" ? "" :
-      `Ciao ${firstName} 😊, ci vediamo il ${date} per la visita nave ${company}.\n\nSalva questo numero per ricevere via broadcast ulteriori comunicazioni.`;
+    const embarkTime = String(person.embarkTime || $("#shipEmbarkTime")?.value || "10:30");
+    const message = company === "LIBERO" ? "" : eventWhatsAppMessage(company, person.eventName, embarkTime);
     const recipient = "39" + phone(person.phone);
     const query = "phone=" + recipient + (message ? "&text=" + encodeURIComponent(message) : "");
     const isIPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
@@ -264,6 +324,29 @@
       toast(status + " salvato ✓");
     } catch (error) { toast(error.message, true); }
     finally { button.disabled = false; }
+  }
+
+  async function saveShipEmbarkTime() {
+    const value = $("#shipEmbarkTime").value;
+    if (!value) return toast("Inserisci l’orario di imbarco", true);
+    const people = shipParticipants.filter(person => person.eventName === selectedShipEvent);
+    const button = $("#saveShipEmbarkTime");
+    button.disabled = true;
+    button.textContent = "Salvataggio…";
+    try {
+      for (let start = 0; start < people.length; start += 400) {
+        const batch = db.batch();
+        people.slice(start, start + 400).forEach(person => batch.update(db.collection("shipParticipants").doc(person.id), {
+          embarkTime:value,
+          eventSettingsUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+          eventSettingsUpdatedBy:profile.name
+        }));
+        await batch.commit();
+      }
+      people.forEach(person => { person.embarkTime = value; });
+      toast("Orario di imbarco salvato: " + value + " ✓");
+    } catch (error) { toast(error.message, true); }
+    finally { button.disabled = false; button.textContent = "Salva orario"; }
   }
 
   function exportShipEvent() {
@@ -851,6 +934,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#eventsMenuButton").onclick = openWorkspaceChoice;
     $("#backToShipEvents").onclick = loadShipEvents;
     $("#exportShipEvent").onclick = exportShipEvent;
+    $("#saveShipEmbarkTime").onclick = saveShipEmbarkTime;
     $("#search").oninput = renderLeads;
     $("#filter").onchange = renderLeads;
     $("#typeFilter").onchange = renderLeads;

@@ -166,14 +166,20 @@
   }
 
   function openShipEvent(eventName) {
+    const changedEvent = selectedShipEvent !== eventName;
     selectedShipEvent = eventName;
+    if (changedEvent && $("#shipParticipantSearch")) $("#shipParticipantSearch").value = "";
     $("#shipEventCards").classList.add("hidden");
     $("#shipEventDetail").classList.remove("hidden");
-    const people = shipParticipants.filter(person => person.eventName === eventName)
+    const allPeople = shipParticipants.filter(person => person.eventName === eventName)
       .sort((a,b) => (`${a.lastName} ${a.firstName}`).localeCompare(`${b.lastName} ${b.firstName}`, "it"));
+    const query = norm($("#shipParticipantSearch")?.value || "");
+    const people = query ? allPeople.filter(person => norm([
+      person.lastName, person.firstName, person.phone, person.email, person.consultantSurname
+    ].join(" ")).includes(query)) : allPeople;
     $("#shipEventTitle").textContent = eventName;
-    $("#shipEventCount").textContent = `${people.length} partecipanti`;
-    $("#shipEmbarkTime").value = String(people.find(person => person.embarkTime)?.embarkTime || "10:30");
+    $("#shipEventCount").textContent = query ? `${people.length} di ${allPeople.length} partecipanti` : `${allPeople.length} partecipanti`;
+    $("#shipEmbarkTime").value = String(allPeople.find(person => person.embarkTime)?.embarkTime || "10:30");
     $("#shipParticipants").innerHTML = people.map(person => {
       const status = norm(person.attendanceStatus);
       const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
@@ -204,6 +210,35 @@
     $$("[data-attendance]").forEach(button => button.onclick = () => saveAttendance(button));
     $$("[data-role]").forEach(button => button.onclick = () => saveParticipantRole(button));
     $$("[data-event-whatsapp]").forEach(button => button.onclick = () => openEventWhatsApp(button));
+  }
+
+  async function saveManualConsultant(event) {
+    event.preventDefault();
+    const firstName = $("#manualFirstName").value.trim();
+    const lastName = $("#manualLastName").value.trim();
+    const mobile = phone($("#manualPhone").value);
+    const email = $("#manualEmail").value.trim().toLowerCase();
+    if (!firstName || !lastName || !mobile) return toast("Inserisci nome, cognome e cellulare", true);
+    const button = $("#manualConsultantForm .save-manual");
+    button.disabled = true;
+    button.textContent = "Salvataggio…";
+    try {
+      const data = {
+        eventName:selectedShipEvent, firstName, lastName, phone:mobile, email,
+        consultantSurname:lastName, surnameMatches:true, isConsultant:true,
+        roleOverride:"Consulente", origin:"INSERIMENTO MANUALE",
+        embarkTime:$("#shipEmbarkTime").value || "10:30",
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy:profile.name
+      };
+      const reference = await db.collection("shipParticipants").add(data);
+      shipParticipants.push({id:reference.id, ...data, createdAt:new Date()});
+      $("#manualConsultantForm").reset();
+      $("#manualConsultantForm").classList.add("hidden");
+      openShipEvent(selectedShipEvent);
+      toast("Consulente aggiunto all’evento ✓");
+    } catch (error) { toast(error.message, true); }
+    finally { button.disabled = false; button.textContent = "Salva consulente"; }
   }
 
   async function saveParticipantRole(button) {
@@ -935,6 +970,10 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#backToShipEvents").onclick = loadShipEvents;
     $("#exportShipEvent").onclick = exportShipEvent;
     $("#saveShipEmbarkTime").onclick = saveShipEmbarkTime;
+    $("#shipParticipantSearch").oninput = () => openShipEvent(selectedShipEvent);
+    $("#showManualConsultant").onclick = () => $("#manualConsultantForm").classList.remove("hidden");
+    $("#cancelManualConsultant").onclick = () => $("#manualConsultantForm").classList.add("hidden");
+    $("#manualConsultantForm").onsubmit = saveManualConsultant;
     $("#search").oninput = renderLeads;
     $("#filter").onchange = renderLeads;
     $("#typeFilter").onchange = renderLeads;

@@ -903,6 +903,16 @@
       .event-time-editor label { display:grid; gap:5px; color:var(--muted); font-size:11px; font-weight:700; }
       .event-time-editor input { min-width:135px; border:1px solid var(--line); border-radius:9px; padding:9px 10px; font:inherit; }
       .event-time-editor button { border:0; border-radius:9px; padding:10px 13px; background:var(--o); color:#fff; font-weight:800; }
+      .event-participant-tools { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; margin-bottom:12px; }
+      .event-participant-tools input { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 13px; font:inherit; }
+      .event-participant-tools button { border:0; border-radius:11px; padding:11px 14px; background:#171717; color:#fff; font-weight:800; }
+      .manual-consultant-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:16px; padding:15px; border:1px solid var(--line); border-radius:13px; background:#fff8f2; }
+      .manual-consultant-form h3 { grid-column:1/-1; margin:0; }
+      .manual-consultant-form label { display:grid; gap:5px; color:var(--muted); font-size:11px; font-weight:700; }
+      .manual-consultant-form input { border:1px solid var(--line); border-radius:9px; padding:9px 10px; font:inherit; background:#fff; }
+      .manual-consultant-actions { grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; }
+      .manual-consultant-actions button { border:1px solid var(--line); border-radius:9px; padding:9px 13px; background:#fff; font-weight:800; }
+      .manual-consultant-actions .save-manual { border-color:var(--o); background:var(--o); color:#fff; }
       .participant-list { display:grid; gap:11px; }
       .participant-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:center; padding:18px; border:1px solid var(--line); border-radius:15px; background:#fff; }
       .participant-card h3 { margin:0 0 5px; font-size:18px; }
@@ -936,6 +946,8 @@
         .role-choice, .whatsapp-event-actions { justify-content:stretch; }
         .role-choice button, .whatsapp-event-actions button { flex:1; }
         .event-time-editor { align-items:stretch; flex-direction:column; }
+        .event-participant-tools, .manual-consultant-form { grid-template-columns:1fr; }
+        .manual-consultant-form h3, .manual-consultant-actions { grid-column:1; }
       }
     </style>
   </head>
@@ -1115,6 +1127,21 @@
             <label>Orario imbarco<input id="shipEmbarkTime" type="time" value="10:30" /></label>
             <button type="button" id="saveShipEmbarkTime">Salva orario</button>
           </div>
+          <div class="event-participant-tools">
+            <input id="shipParticipantSearch" type="search" placeholder="Cerca partecipante, consulente, telefono o email" />
+            <button type="button" id="showManualConsultant">Aggiungi consulente</button>
+          </div>
+          <form class="manual-consultant-form hidden" id="manualConsultantForm">
+            <h3>Aggiungi consulente all’evento</h3>
+            <label>Cognome<input id="manualLastName" required /></label>
+            <label>Nome<input id="manualFirstName" required /></label>
+            <label>Cellulare<input id="manualPhone" inputmode="tel" required /></label>
+            <label>Email @borsaviaggi.net<input id="manualEmail" type="email" /></label>
+            <div class="manual-consultant-actions">
+              <button type="button" id="cancelManualConsultant">Annulla</button>
+              <button type="submit" class="save-manual">Salva consulente</button>
+            </div>
+          </form>
           <div class="participant-list" id="shipParticipants"></div>
         </section>
       </main>
@@ -1801,6 +1828,6 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="firebase-crm.js?v=39"></script>
+    <script src="firebase-crm.js?v=40"></script>
   </body>
 </html>

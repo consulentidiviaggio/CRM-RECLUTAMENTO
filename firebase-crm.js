@@ -384,8 +384,74 @@ Ci vediamo a bordo! 🚢`;
     finally { button.disabled = false; button.textContent = "Salva orario"; }
   }
 
+  function shipPersonIsConsultant(person) {
+    return person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
+  }
+  function sortedShipPeople() {
+    return shipParticipants.filter(person => person.eventName === selectedShipEvent)
+      .sort((a,b) => Number(shipPersonIsConsultant(b))-Number(shipPersonIsConsultant(a)) ||
+        `${a.lastName || ""} ${a.firstName || ""}`.localeCompare(`${b.lastName || ""} ${b.firstName || ""}`, "it"));
+  }
+  function shipPersonValue(person, people) {
+    if (shipPersonIsConsultant(person)) return "Consulente";
+    const original = String(person.consultantSurname || "").trim();
+    const consultant = people.filter(shipPersonIsConsultant).find(p => {
+      const surname = norm(p.lastName);
+      return surname && (norm(original) === surname || norm(original).startsWith(surname + " "));
+    });
+    return `Ospite (${consultant ? consultant.lastName : original || "non indicato"})`;
+  }
+
+  async function exportShipEventPdf() {
+    const button = $("#exportShipEventPdf");
+    button.disabled = true;
+    try {
+      if (!window.jspdf) throw Error("Generatore PDF non caricato. Aggiorna la pagina e riprova.");
+      const doc = new window.jspdf.jsPDF();
+      if (typeof doc.autoTable !== "function") throw Error("Tabella PDF non caricata. Aggiorna la pagina e riprova.");
+      const logo = new Image();
+      await new Promise((resolve, reject) => {
+        logo.onload = resolve;
+        logo.onerror = () => reject(Error("Logo non disponibile: verifica logo-iconsulenti.png su GitHub."));
+        logo.src = "logo-iconsulenti.png";
+      });
+      const width = 65;
+      const height = width * logo.naturalHeight / logo.naturalWidth;
+      doc.addImage(logo, "PNG", (210-width)/2, 12, width, height);
+      const info = shipEventInfo(selectedShipEvent);
+      const title = info.city ? `Visita Nave ${info.date} ${info.city}` : `Visita Nave - ${selectedShipEvent}`;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      const titleLines = doc.splitTextToSize(title, 180);
+      doc.text(titleLines, 105, 20 + height, {align:"center"});
+      const people = sortedShipPeople();
+      doc.autoTable({
+        startY:27 + height + (titleLines.length-1)*6,
+        head:[["Nome", "Cognome", "Valore", "Presente", "Assente"]],
+        body:people.map(person => [person.firstName || "", person.lastName || "", shipPersonValue(person, people),
+          norm(person.attendanceStatus) === "PRESENTE" ? "X" : "",
+          norm(person.attendanceStatus) === "ASSENTE" ? "X" : ""]),
+        theme:"grid",
+        styles:{font:"helvetica",fontSize:10,cellPadding:3},
+        headStyles:{fillColor:[249,124,24],textColor:255},
+        columnStyles:{0:{cellWidth:43},1:{cellWidth:43},2:{cellWidth:54},3:{halign:"center",cellWidth:20},4:{halign:"center",cellWidth:20}},
+        margin:{left:15,right:15},
+        didDrawPage:() => {
+          doc.setFontSize(9);
+          doc.setTextColor(110);
+          doc.text(`Pagina ${doc.internal.getNumberOfPages()}`, 195, 289, {align:"right"});
+        }
+      });
+      const filename = selectedShipEvent.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "Evento";
+      doc.save(`Presenze-${filename}.pdf`);
+      toast("PDF presenze creato ✓");
+    } catch (error) { toast(error.message, true); }
+    finally { button.disabled = false; }
+  }
+
   function exportShipEvent() {
-    const rows = shipParticipants.filter(person => person.eventName === selectedShipEvent).map(person => {
+    const people = sortedShipPeople();
+    const rows = people.map(person => {
       const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
       return ({
       "VISITA NAVE":person.eventName,
@@ -395,6 +461,7 @@ Ci vediamo a bordo! 🚢`;
       "MAIL @BORSAVIAGGI.NET":isConsultant ? (person.email || "") : "",
       "COGNOME CONSULENTE":person.consultantSurname || "",
       "TIPO":isConsultant ? "Consulente" : "Partecipante",
+      "VALORE":shipPersonValue(person, people),
       "PRESENZA":person.attendanceStatus || "Da registrare"
       });
     });
@@ -969,6 +1036,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#eventsMenuButton").onclick = openWorkspaceChoice;
     $("#backToShipEvents").onclick = loadShipEvents;
     $("#exportShipEvent").onclick = exportShipEvent;
+    $("#exportShipEventPdf").onclick = exportShipEventPdf;
     $("#saveShipEmbarkTime").onclick = saveShipEmbarkTime;
     $("#shipParticipantSearch").oninput = () => openShipEvent(selectedShipEvent);
     $("#showManualConsultant").onclick = () => $("#manualConsultantForm").classList.remove("hidden");

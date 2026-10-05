@@ -342,23 +342,66 @@ Ci vediamo a bordo! 🚢`;
       : "https://wa.me/" + recipient + (message ? "?text=" + encodeURIComponent(message) : "");
   }
 
+  let attendanceSaving = false;
+  function linkedShipGuests(consultant) {
+    const people = shipParticipants.filter(p => p.eventName === consultant.eventName);
+    const surname = norm(consultant.lastName);
+    if (!surname) return [];
+    const sameSurname = people.filter(p => shipPersonIsConsultant(p) && norm(p.lastName) === surname);
+    const fullNames = [norm(`${consultant.lastName} ${consultant.firstName}`), norm(`${consultant.firstName} ${consultant.lastName}`)];
+    return people.filter(p => !shipPersonIsConsultant(p) && (
+      p.consultantId === consultant.id || (!p.consultantId && (
+        fullNames.includes(norm(p.consultantSurname)) ||
+        (sameSurname.length === 1 && norm(p.consultantSurname) === surname)
+      ))
+    ));
+  }
+
   async function saveAttendance(button) {
+    if (attendanceSaving) return;
     const card = button.closest("[data-participant-id]");
     const person = shipParticipants.find(item => item.id === card.dataset.participantId);
     if (!person) return;
-    const status = button.dataset.attendance;
-    button.disabled = true;
+    const status = norm(person.attendanceStatus) === norm(button.dataset.attendance) ? "" : button.dataset.attendance;
+    const updates = [{person, status, autoFrom:""}];
+    if (shipPersonIsConsultant(person)) {
+      const guests = linkedShipGuests(person);
+      if (status === "Presente") {
+        guests.filter(p => norm(p.attendanceStatus) !== "PRESENTE").forEach(p =>
+          updates.push({person:p,status:"Presente",autoFrom:person.id}));
+      } else {
+        guests.filter(p => p.attendanceAutoFrom === person.id).forEach(p =>
+          updates.push({person:p,status:p.attendanceBeforeAuto || "",autoFrom:""}));
+      }
+    }
+    if (updates.length > 500) return toast("Troppi ospiti per un singolo aggiornamento.", true);
+    attendanceSaving = true;
+    $$("[data-attendance]").forEach(b => b.disabled = true);
     try {
-      await db.collection("shipParticipants").doc(person.id).update({
-        attendanceStatus:status,
-        attendanceUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-        attendanceUpdatedBy:profile.name
+      const batch = db.batch();
+      updates.forEach(change => {
+        change.previous = change.autoFrom ? (change.person.attendanceStatus || "") : "";
+        batch.update(db.collection("shipParticipants").doc(change.person.id), {
+          attendanceStatus:change.status,
+          attendanceAutoFrom:change.autoFrom,
+          attendanceBeforeAuto:change.previous,
+          attendanceUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+          attendanceUpdatedBy:profile.name
+        });
       });
-      person.attendanceStatus = status;
-      card.querySelectorAll("[data-attendance]").forEach(item => item.classList.toggle("active", item === button));
-      toast(status + " salvato ✓");
+      await batch.commit();
+      updates.forEach(change => Object.assign(change.person, {
+        attendanceStatus:change.status, attendanceAutoFrom:change.autoFrom,
+        attendanceBeforeAuto:change.previous
+      }));
+      openShipEvent(selectedShipEvent);
+      toast((status ? status + " salvato" : "Presenza annullata") +
+        (updates.length > 1 ? ` · aggiornati ${updates.length-1} ospiti` : "") + " ✓");
     } catch (error) { toast(error.message, true); }
-    finally { button.disabled = false; }
+    finally {
+      attendanceSaving = false;
+      $$("[data-attendance]").forEach(b => b.disabled = false);
+    }
   }
 
   async function saveShipEmbarkTime() {
@@ -434,7 +477,7 @@ Ci vediamo a bordo! 🚢`;
         theme:"grid",
         styles:{font:"helvetica",fontSize:10,cellPadding:3},
         headStyles:{fillColor:[249,124,24],textColor:255},
-        columnStyles:{0:{cellWidth:43},1:{cellWidth:43},2:{cellWidth:54},3:{halign:"center",cellWidth:20},4:{halign:"center",cellWidth:20}},
+        columnStyles:{0:{cellWidth:40},1:{cellWidth:40},2:{cellWidth:50},3:{halign:"center",cellWidth:25},4:{halign:"center",cellWidth:25}},
         margin:{left:15,right:15},
         didDrawPage:() => {
           doc.setFontSize(9);

@@ -664,7 +664,6 @@ Ci vediamo a bordo! 🚢`;
     // Dati richiesti in ogni messaggio; aggiungi solo quelli non già presenti nel copy.
     if (!template.includes('{{data_bootcamp}}')) text += '\n\nBootcamp: ' + variables.data_bootcamp;
     if (!template.includes('{{ora_bootcamp}}')) text += '\nOre ' + variables.ora_bootcamp;
-    if (!template.includes('{{link_zoom}}')) text += '\nLink Zoom: ' + variables.link_zoom;
     if (!template.includes('{{operatore}}')) text += '\n\n' + variables.operatore + ' | iconsulentidiviaggio.it';
     return text;
   }

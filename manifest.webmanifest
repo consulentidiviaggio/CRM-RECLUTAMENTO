@@ -4,7 +4,7 @@
   "short_name": "CRM",
   "description": "Contatti e visite nave",
   "lang": "it",
-  "start_url": "./?v=41",
+  "start_url": "./?v=43",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",

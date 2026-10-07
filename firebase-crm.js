@@ -643,7 +643,127 @@ Ci vediamo a bordo! 🚢`;
     $$('[data-open]').forEach(b => b.onclick = () => openLead(b.dataset.open));
   }
 
+  const bootcampMessages = window.CRM_BOOTCAMP_MESSAGES || [];
+  let activeBootcampConfig = null;
+  let messageSaving = false;
+  function bootcampId(contact) { return dayKey(contact.bootcampDate); }
+  function messageVariables(contact, config) {
+    const date = new Date(config.date + 'T12:00:00');
+    return {
+      nome:contact.firstName || String(contact.name || '').split(' ')[0],
+      operatore:norm(profile.operatorCode) === 'FB' ? 'Fabio' : 'Stefano',
+      data_bootcamp:new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',timeZone:'Europe/Rome'}).format(date).toUpperCase(),
+      giorno_bootcamp:new Intl.DateTimeFormat('it-IT',{weekday:'long',timeZone:'Europe/Rome'}).format(date).toUpperCase(),
+      ora_bootcamp:config.time,
+      link_zoom:config.zoomUrl,
+      fascia_chiamata:$('#callMessageVariant').value === 'morning' ? 'mattina tra le 11:00 e le 13:00' : 'pomeriggio tra le 15:00 e le 17:00'
+    };
+  }
+  function composeBootcampMessage(template, variables) {
+    let text = template.replace(/\{\{(\w+)\}\}/g, (_,key) => variables[key] || '');
+    // Dati richiesti in ogni messaggio; aggiungi solo quelli non già presenti nel copy.
+    if (!template.includes('{{data_bootcamp}}')) text += '\n\nBootcamp: ' + variables.data_bootcamp;
+    if (!template.includes('{{ora_bootcamp}}')) text += '\nOre ' + variables.ora_bootcamp;
+    if (!template.includes('{{link_zoom}}')) text += '\nLink Zoom: ' + variables.link_zoom;
+    if (!template.includes('{{operatore}}')) text += '\n\n' + variables.operatore + ' | iconsulentidiviaggio.it';
+    return text;
+  }
+  async function loadBootcampMessaging() {
+    const contact = current;
+    activeBootcampConfig = null;
+    const section = $('#bootcampMessaging');
+    section.classList.toggle('hidden', contact.contactType === 'DIRETTO');
+    $('#firstMessage').classList.toggle('hidden', contact.contactType !== 'DIRETTO');
+    if (contact.contactType === 'DIRETTO') return;
+    const id = bootcampId(contact);
+    $('#bootcampConfigDate').value = id;
+    $('#bootcampConfigTime').value = '21:00';
+    $('#bootcampConfigZoom').value = '';
+    $('#bootcampConfigStatus').textContent = 'Caricamento configurazione…';
+    $('#bootcampMessageButtons').innerHTML = '';
+    const editable = norm(profile.operatorCode) === 'ST' || profile.role === 'admin';
+    $('#bootcampConfigTime').disabled = !editable;
+    $('#bootcampConfigZoom').disabled = !editable;
+    $('#saveBootcampConfig').classList.toggle('hidden', !editable);
+    if (!id) { $('#bootcampConfigStatus').textContent = 'Data Bootcamp mancante nel contatto.'; return; }
+    try {
+      const snapshot = await db.collection('bootcamps').doc(id).get();
+      if (current?.id !== contact.id) return;
+      activeBootcampConfig = snapshot.exists ? snapshot.data() : null;
+      if (activeBootcampConfig) {
+        $('#bootcampConfigTime').value = activeBootcampConfig.time || '21:00';
+        $('#bootcampConfigZoom').value = activeBootcampConfig.zoomUrl || '';
+      }
+      renderBootcampMessages();
+    } catch(error) { if(current?.id === contact.id) $('#bootcampConfigStatus').textContent = 'Configurazione non caricata: ' + error.message; }
+  }
+  function renderBootcampMessages() {
+    const ready = activeBootcampConfig?.zoomUrl && activeBootcampConfig?.time;
+    $('#bootcampConfigStatus').textContent = ready ? 'Configurazione condivisa con Stefano e Fabio. Orario italiano.' : 'Inserisci ora e link Zoom, poi salva la configurazione.';
+    $('#bootcampMessageButtons').innerHTML = bootcampMessages.map(m => `<button type="button" class="first-message" data-bootcamp-message="${m.key}" ${ready ? '' : 'disabled'}>${esc(m.label)}</button>`).join('');
+    $('[data-bootcamp-message="call"]').title = 'Scegli la variante mattina, pomeriggio o weekend';
+    $$('[data-bootcamp-message]').forEach(b => b.onclick = () => sendBootcampMessage(b));
+    refreshBootcampMessageStates();
+  }
+  function refreshBootcampMessageStates() {
+    $$('[data-bootcamp-message]').forEach(button => {
+      const message = bootcampMessages.find(m => m.key === button.dataset.bootcampMessage);
+      button.classList.toggle('message-recorded', savedEvents.has(message?.event));
+      button.setAttribute('aria-label', message?.label + (savedEvents.has(message?.event) ? ' · già registrato' : ''));
+    });
+  }
+  async function saveBootcampConfig(event) {
+    event.preventDefault();
+    const contact = current;
+    const id = bootcampId(contact);
+    const time = $('#bootcampConfigTime').value;
+    const zoomUrl = $('#bootcampConfigZoom').value.trim();
+    let parsed;
+    try { parsed = new URL(zoomUrl); } catch { return toast('Inserisci un link Zoom completo https://…', true); }
+    if (!id || !/^\d{2}:\d{2}$/.test(time) || parsed.protocol !== 'https:' ||
+      !(parsed.hostname === 'zoom.us' || parsed.hostname.endsWith('.zoom.us') || parsed.hostname === 'zoom.com' || parsed.hostname.endsWith('.zoom.com')))
+      return toast('Controlla data, ora e link Zoom', true);
+    const button = $('#saveBootcampConfig'); button.disabled = true;
+    try {
+      const config = {date:id,time,zoomUrl,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:profile.name};
+      await db.collection('bootcamps').doc(id).set(config,{merge:true});
+      if(current?.id === contact.id) { activeBootcampConfig = config; renderBootcampMessages(); }
+      toast('Configurazione Bootcamp salvata per entrambi gli operatori ✓');
+    } catch(error) { toast(error.message,true); }
+    finally { button.disabled = false; }
+  }
+  async function sendBootcampMessage(button) {
+    if(messageSaving || !current) return;
+    const contact = current;
+    const message = bootcampMessages.find(m => m.key === button.dataset.bootcampMessage);
+    if(!message || !phone(contact.phone)) return toast('Cellulare non disponibile',true);
+    if (!activeBootcampConfig?.zoomUrl) return toast('Salva prima la configurazione Bootcamp',true);
+    const template = message.key === 'call' && $('#callMessageVariant').value === 'weekend' ? window.CRM_WEEKEND_MESSAGE : message.text;
+    const text = composeBootcampMessage(template, messageVariables(contact, activeBootcampConfig));
+    const recipient = '39' + phone(contact.phone);
+    const iOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // Apri la finestra desktop durante il gesto utente per evitare il blocco popup.
+    const popup = !iOS ? window.open('about:blank','_blank') : null;
+    if (!iOS && !popup) return toast('Consenti i popup per aprire WhatsApp',true);
+    if(popup) { popup.opener = null; popup.document.body.textContent = 'Salvataggio scheda e apertura WhatsApp…'; }
+    messageSaving = true;
+    $$('[data-bootcamp-message]').forEach(b => b.disabled = true);
+    try {
+      const saved = await saveContact([message.event], true);
+      if(!saved) { popup?.close(); return; }
+      const url = iOS ? 'whatsapp-smb://send?phone='+recipient+'&text='+encodeURIComponent(text)
+        : 'https://web.whatsapp.com/send?phone='+recipient+'&text='+encodeURIComponent(text);
+      if(iOS) window.location.href = url;
+      else popup.location.href = url;
+      toast('Evento registrato al click. Conferma l’invio in WhatsApp.');
+    } catch(error) { popup?.close(); toast(error.message,true); }
+    finally { messageSaving = false; renderBootcampMessages(); }
+  }
+
   async function openLead(id) {
+    if (messageSaving) return toast("Attendi il salvataggio del messaggio");
+    $("#bootcampMessageButtons").innerHTML = "";
+    $("#bootcampMessaging").classList.add("hidden");
     current = leads.find(l => String(l.id) === String(id));
     if (!current) return;
     // Il messaggio iniziale è disponibile per entrambi gli operatori.
@@ -681,6 +801,7 @@ Ci vediamo a bordo! 🚢`;
         .filter(event => !event.deleted)
         .sort((a,b) => (jsDate(b.createdAt)?.getTime() || 0) - (jsDate(a.createdAt)?.getTime() || 0));
       timeline(events);
+      await loadBootcampMessaging();
     } catch (error) {
       $("#timeline").innerHTML = '<div class="empty">Impossibile caricare la scheda.</div>';
       toast(error.message, true);
@@ -688,6 +809,7 @@ Ci vediamo a bordo! 🚢`;
   }
   function timeline(events) {
     currentEvents = events;
+    setTimeout(refreshBootcampMessageStates, 0);
     savedEvents = new Set(events.map(e => String(e.type || "").trim()));
     $$('.event').forEach(b => {
       const saved = savedEvents.has(b.textContent.trim());
@@ -700,7 +822,7 @@ Ci vediamo a bordo! 🚢`;
     ).join("") : '<div class="empty">Nessun evento registrato.</div>';
   }
 
-  async function saveContact(extraEvents = []) {
+  async function saveContact(extraEvents = [], repeatExtra = false) {
     if (!current) return;
     const button = $("#updateContact");
     const answers = {};
@@ -712,7 +834,7 @@ Ci vediamo a bordo! 🚢`;
     const newEvents = [...new Set(
       $$('.event.pending').map(b => b.textContent.trim())
         .concat(extraEvents)
-        .filter(type => type && !savedEvents.has(type))
+        .filter(type => type && (!savedEvents.has(type) || (repeatExtra && extraEvents.includes(type))))
     )];
     const removedEvents = $$('.event.remove-pending').map(b => b.textContent.trim());
     button.disabled = true;
@@ -725,8 +847,10 @@ Ci vediamo a bordo! 🚢`;
       batch.update(db.collection("contacts").doc(current.id), {
         answers, status, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      const addedEvents = [];
       newEvents.forEach(type => {
         const ref = db.collection("events").doc();
+        addedEvents.push({id:ref.id,type,createdAt:new Date(),operatorName:profile.name});
         batch.set(ref, {
           leadId:current.id, operatorCode:profile.operatorCode, operatorName:profile.name,
           type, detail:"", note:"", newStatus:eventStatus(type), origin:"WEBAPP",
@@ -743,7 +867,7 @@ Ci vediamo a bordo! 🚢`;
       await batch.commit();
       current.status = status;
       const now = new Date();
-      timeline(newEvents.map(type => ({ type, createdAt:now, operatorName:profile.name })).concat(remainingEvents));
+      timeline(addedEvents.concat(remainingEvents));
       toast("Scheda aggiornata ✓");
       return true;
     } catch (error) { toast(error.message, true); }
@@ -1017,7 +1141,10 @@ ${operatorName} | iconsulentidiviaggio.it`;
     button.disabled = true;
     button.textContent = "Creazione Excel…";
     try {
-      const reportLeads = leads.filter(contact => contact.contactType !== "DIRETTO");
+      const freshContacts = await db.collection("contacts").where("operatorCode","==",profile.operatorCode).get();
+      const visibleIds = new Set(leads.map(c=>c.id));
+      const reportLeads = freshContacts.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(c=>visibleIds.has(c.id) && norm(c.contactType) !== "DIRETTO");
       const ids = new Set(reportLeads.map(contact => contact.id));
       const eventSnap = await db.collection("events").where("operatorCode","==",profile.operatorCode).get();
       const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId) && !e.deleted);
@@ -1035,18 +1162,25 @@ ${operatorName} | iconsulentidiviaggio.it`;
           "TELEFONO":contact.phone || "",
           "EMAIL":contact.email || "",
           "REGIONE":contact.region || "",
+          "FONTE":contact.source || contact.origin || contact.contactType || "BOOTCAMP",
           "OPERATORE":operatorName,
           "DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
           "STATO":contact.status || "Da lavorare",
           "PROSSIMO STEP":contact.nextStep || "",
           "DATA PROSSIMO STEP":formatDate(contact.nextStepAt)
         };
-        eventNames.forEach(eventName => { row[eventName] = completedEvents.has(eventName) ? 1 : 0; });
+        [...new Set(eventNames.concat(bootcampMessages.map(m => m.event), events.map(e => e.type).filter(Boolean)))].forEach(eventName => { row[eventName] = completedEvents.has(eventName) ? 1 : 0; });
         row["NOTE CHIAMATA"] = contact.answers?.["NOTE CHIAMATA"] || "";
         return row;
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "RIEPILOGO");
+      const history = events.sort((a,b)=>(jsDate(a.createdAt)?.getTime()||0)-(jsDate(b.createdAt)?.getTime()||0)).map(e=>({
+        "LEAD ID":e.leadId,"CONTATTO":reportLeads.find(c=>c.id===e.leadId)?.name || "",
+        "DATA":formatDate(e.createdAt),"EVENTO":e.type,"OPERATORE":e.operatorName || operatorName,
+        "DETTAGLIO":e.detail || "","NOTE":e.note || ""
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(history), "CRONOLOGIA");
       XLSX.writeFile(wb, `Riepilogo Bootcamp - ${operatorName}.xlsx`);
       toast("Riepilogo Excel creato ✓");
     } catch (error) { toast(error.message, true); }
@@ -1088,7 +1222,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#search").oninput = renderLeads;
     $("#filter").onchange = renderLeads;
     $("#typeFilter").onchange = renderLeads;
-    $("#back").onclick = () => { $("#leadSheet").classList.add("hidden"); document.body.style.overflow = ""; loadDashboard(); };
+    $("#back").onclick = () => { if(messageSaving) return toast("Attendi il salvataggio del messaggio"); $("#leadSheet").classList.add("hidden"); document.body.style.overflow = ""; loadDashboard(); };
     $("#events").innerHTML = eventNames.map(n => `<button class="event" type="button">${n}</button>`).join("");
     $$('[data-group] .chip').forEach(c => c.onclick = e => { e.preventDefault(); [...c.parentElement.children].forEach(x => x.classList.toggle("active", x === c)); });
     $$('.event').forEach(b => b.onclick = () => {
@@ -1099,8 +1233,9 @@ ${operatorName} | iconsulentidiviaggio.it`;
       }
       b.classList.toggle("pending");
     });
-    $("#updateContact").onclick = () => saveContact();
+    $("#updateContact").onclick = () => { if(!messageSaving) saveContact(); };
     $("#firstMessage").onclick = saveAndOpenWhatsApp;
+    $("#bootcampConfigForm").onsubmit = saveBootcampConfig;
     $("#next").onclick = openNextStep;
     $("#cancelStep").onclick = () => $("#nextDialog").close();
     const noteField = $("#stepNote").closest(".field");

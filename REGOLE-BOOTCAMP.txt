@@ -1,0 +1,12 @@
+Dentro service cloud.firestore → match /databases/{database}/documents, aggiungi questo blocco ACCANTO agli altri match, prima della parentesi di chiusura. Conserva tutte le regole esistenti.
+
+match /bootcamps/{bootcampId} {
+  allow read: if isAdmin() || ownCode('ST') || ownCode('FB');
+  allow create, update: if (isAdmin() || ownCode('ST'))
+    && request.resource.data.date == bootcampId
+    && request.resource.data.time is string
+    && request.resource.data.zoomUrl is string;
+  allow delete: if isAdmin();
+}
+
+Questo blocco usa gli helper isAdmin() e ownCode() già presenti nelle regole del CRM. Se i nomi delle funzioni sono diversi nelle tue regole effettive, non sostituire tutte le regole: mandami il testo per adattare solo questo blocco.

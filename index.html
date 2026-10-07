@@ -21,6 +21,13 @@
       rel="stylesheet"
     />
     <style>
+      #bootcampConfigForm {display:grid;gap:12px;margin:15px 0;}
+      #bootcampConfigForm input, #callMessageVariant {display:block;width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit;}
+      #bootcampMessageButtons {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:15px 0;}
+      #bootcampMessageButtons button {white-space:normal;text-align:left;min-height:48px;}
+      #bootcampMessageButtons .message-recorded {background:#e4f4e9;color:#18693c;border:1px solid #18693c;}
+      #bootcampMessageButtons button:disabled {opacity:.5;cursor:wait;}
+
       :root {
         --o: #f47b20;
         --od: #d75c00;
@@ -1206,6 +1213,23 @@
               <a id="wa">WhatsApp</a><a id="call">Chiama</a>
             </div>
           </section>
+          <section class="panel hidden" id="bootcampMessaging">
+            <h3>Messaggi WhatsApp Bootcamp</h3>
+            <details><summary>Configurazione Bootcamp · Ora e link Zoom</summary>
+              <form id="bootcampConfigForm">
+                <label>Data Bootcamp associato<input id="bootcampConfigDate" type="date" readonly /></label>
+                <label>Ora Bootcamp · Italia<input id="bootcampConfigTime" type="time" required value="21:00" /></label>
+                <label>Link Zoom<input id="bootcampConfigZoom" type="url" required placeholder="https://us02web.zoom.us/j/…" /></label>
+                <button id="saveBootcampConfig" class="first-message" type="submit">Salva configurazione Bootcamp</button>
+              </form>
+            </details>
+            <p id="bootcampConfigStatus" aria-live="polite"></p>
+            <label>Variante per concordare la chiamata
+              <select id="callMessageVariant"><option value="morning">Mattina · 11:00–13:00</option><option value="afternoon">Pomeriggio · 15:00–17:00</option><option value="weekend">Weekend · lunedì 15:00–17:00</option></select>
+            </label>
+            <div id="bootcampMessageButtons"></div>
+            <small>Ogni click registra l’evento. L’invio si conferma in WhatsApp. I pulsanti verdi hanno un evento già registrato.</small>
+          </section>
           <section class="panel">
             <h3>Domande della telefonata</h3>
             <div id="bootcampQuestions">
@@ -1837,7 +1861,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="firebase-crm.js?v=41"></script>
-  <script src="pwa.js?v=41"></script>
+    <script src="bootcamp-messages.js?v=43"></script>
+    <script src="firebase-crm.js?v=43"></script>
+  <script src="pwa.js?v=43"></script>
   </body>
 </html>

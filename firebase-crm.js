@@ -36,6 +36,7 @@
   let current = null;
   let currentEvents = [];
   let savedEvents = new Set();
+  let leadMessageEvents = new Map();
   let shipParticipants = [];
   let selectedShipEvent = "";
   const $ = s => document.querySelector(s);
@@ -570,6 +571,14 @@ Ci vediamo a bordo! 🚢`;
         return (jsDate(b.updatedAt)?.getTime() || jsDate(b.registrationDate)?.getTime() || 0) -
           (jsDate(a.updatedAt)?.getTime() || jsDate(a.registrationDate)?.getTime() || 0);
       });
+      const messageSnap = await db.collection("events").where("operatorCode", "==", code).get();
+      leadMessageEvents = new Map();
+      messageSnap.docs.forEach(doc => {
+        const event = doc.data();
+        if(event.deleted || !event.leadId) return;
+        if(!leadMessageEvents.has(event.leadId)) leadMessageEvents.set(event.leadId, new Set());
+        leadMessageEvents.get(event.leadId).add(String(event.type || "").trim());
+      });
       const stepSnap = await db.collection("nextSteps").where("operatorCode", "==", code).get();
       const now = Date.now();
       appointments = stepSnap.docs.map(d => ({ id:d.id, ...d.data() }))
@@ -632,7 +641,8 @@ Ci vediamo a bordo! 🚢`;
     const list = leads.filter(l => {
       const c = statusClass(l.status);
       const state = filter === "all" || (filter === "todo" && c === "todo") ||
-        (filter === "rejected" && c === "rejected") || (filter === "worked" && c !== "todo");
+        (filter === "rejected" && c === "rejected") || (filter === "worked" && c !== "todo") ||
+        (filter.startsWith("message:") && leadMessageEvents.get(l.id)?.has(filter.slice(8)));
       const typeMatches = typeFilter === "all" || l.contactType === typeFilter;
       return state && typeMatches && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
     });
@@ -741,9 +751,11 @@ Ci vediamo a bordo! 🚢`;
     const text = composeBootcampMessage(template, messageVariables(contact, activeBootcampConfig));
     const recipient = '39' + phone(contact.phone);
     const iOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    // Apri la finestra desktop durante il gesto utente per evitare il blocco popup.
-    const popup = !iOS ? window.open('about:blank','_blank') : null;
-    if (!iOS && !popup) return toast('Consenti i popup per aprire WhatsApp',true);
+    const android = /Android/i.test(navigator.userAgent);
+    const mobile = iOS || android;
+    // Solo il PC usa WhatsApp Web; Android usa il collegamento mobile.
+    const popup = !mobile ? window.open('about:blank','_blank') : null;
+    if (!mobile && !popup) return toast('Consenti i popup per aprire WhatsApp',true);
     if(popup) { popup.opener = null; popup.document.body.textContent = 'Salvataggio scheda e apertura WhatsApp…'; }
     messageSaving = true;
     $$('[data-bootcamp-message]').forEach(b => b.disabled = true);
@@ -751,9 +763,21 @@ Ci vediamo a bordo! 🚢`;
       const saved = await saveContact([message.event], true);
       if(!saved) { popup?.close(); return; }
       const url = iOS ? 'whatsapp-smb://send?phone='+recipient+'&text='+encodeURIComponent(text)
+        : android ? 'https://wa.me/'+recipient+'?text='+encodeURIComponent(text)
         : 'https://web.whatsapp.com/send?phone='+recipient+'&text='+encodeURIComponent(text);
-      if(iOS) window.location.href = url;
-      else popup.location.href = url;
+      if(mobile) {
+        let fallback = $('#openPreparedWhatsApp');
+        if(!fallback) {
+          fallback = document.createElement('a');
+          fallback.id = 'openPreparedWhatsApp';
+          fallback.className = 'first-message';
+          $('#bootcampMessaging').append(fallback);
+        }
+        fallback.href = url;
+        fallback.textContent = 'Apri WhatsApp · messaggio già registrato';
+        fallback.classList.remove('hidden');
+        window.location.href = url;
+      } else popup.location.href = url;
       toast('Evento registrato al click. Conferma l’invio in WhatsApp.');
     } catch(error) { popup?.close(); toast(error.message,true); }
     finally { messageSaving = false; renderBootcampMessages(); }
@@ -761,6 +785,7 @@ Ci vediamo a bordo! 🚢`;
 
   async function openLead(id) {
     if (messageSaving) return toast("Attendi il salvataggio del messaggio");
+    $("#openPreparedWhatsApp")?.remove();
     $("#bootcampMessageButtons").innerHTML = "";
     $("#bootcampMessaging").classList.add("hidden");
     current = leads.find(l => String(l.id) === String(id));
@@ -808,6 +833,7 @@ Ci vediamo a bordo! 🚢`;
   }
   function timeline(events) {
     currentEvents = events;
+    if(current) leadMessageEvents.set(current.id, new Set(events.map(e => String(e.type || "").trim())));
     setTimeout(refreshBootcampMessageStates, 0);
     savedEvents = new Set(events.map(e => String(e.type || "").trim()));
     $$('.event').forEach(b => {

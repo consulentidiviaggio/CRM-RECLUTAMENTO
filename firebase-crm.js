@@ -681,10 +681,10 @@ Ci vediamo a bordo! 🚢`;
       fascia_chiamata:$('#callMessageVariant').value === 'morning' ? 'mattina tra le 11:00 e le 13:00' : 'pomeriggio tra le 15:00 e le 17:00'
     };
   }
-  function composeBootcampMessage(template, variables) {
+  function composeBootcampMessage(template, variables, messageKey = "") {
     let text = template.replace(/\{\{(\w+)\}\}/g, (_,key) => variables[key] || '');
     // Dati richiesti in ogni messaggio; aggiungi solo quelli non già presenti nel copy.
-    if (!template.includes('{{data_bootcamp}}')) text += '\n\nBootcamp: ' + variables.data_bootcamp;
+    if (messageKey !== 'sameday' && !template.includes('{{data_bootcamp}}')) text += '\n\nBootcamp: ' + variables.data_bootcamp;
     if (!template.includes('{{ora_bootcamp}}')) text += '\nOre ' + variables.ora_bootcamp;
     if (!template.includes('{{operatore}}')) text += '\n\n' + variables.operatore + ' | iconsulentidiviaggio.it';
     return text;
@@ -760,7 +760,7 @@ Ci vediamo a bordo! 🚢`;
     if(!message || !phone(contact.phone)) return toast('Cellulare non disponibile',true);
     if (!activeBootcampConfig?.zoomUrl) return toast('Salva prima la configurazione Bootcamp',true);
     const template = message.key === 'call' && $('#callMessageVariant').value === 'weekend' ? window.CRM_WEEKEND_MESSAGE : message.text;
-    const text = composeBootcampMessage(template, messageVariables(contact, activeBootcampConfig));
+    const text = composeBootcampMessage(template, messageVariables(contact, activeBootcampConfig), message.key);
     const recipient = '39' + phone(contact.phone);
     const iOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const android = /Android/i.test(navigator.userAgent);

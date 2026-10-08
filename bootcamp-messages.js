@@ -1,7 +1,7 @@
 window.CRM_BOOTCAMP_MESSAGES = [
 {key:'first',label:'1 · Primo contatto',event:'Primo messaggio inviato',text:`Ciao {{nome}} 😊 sono {{operatore}} di *iconsulentidiviaggio.it*.
 
-Ho visto la tua registrazione al *Bootcamp del {{data_bootcamp}}* dedicato a chi vuole scoprire come funziona l’attività di *Consulente di Viaggio* 🌍✈️
+Ho visto la tua registrazione al *Bootcamp del {{data_bootcamp}} alle {{ora_bootcamp}}* dedicato a chi vuole scoprire come funziona l’attività di *Consulente di Viaggio* 🌍✈️
 
 Prima della diretta vorrei capire meglio cosa ti ha spinto a registrarti, così posso aiutarti a concentrarti sugli aspetti più utili per te.
 
@@ -19,11 +19,9 @@ Rispondimi semplicemente con *1, 2, 3 o 4* 👍
 
 A presto
 *{{operatore}} | iconsulentidiviaggio.it*`},
-{key:'call',label:'2 · Concordare la chiamata',event:'Proposta chiamata WhatsApp',text:`Ciao {{nome}} 😊
+{key:'call',label:'2 · Concordare la chiamata',event:'Proposta chiamata WhatsApp',text:`Perfetto 👍
 
-Perfetto 👍
-
-Da quello che mi hai indicato, credo possa essere utile sentirci *5 minuti domani {{fascia_chiamata}} prima del Bootcamp del {{data_bootcamp}}*, così capisco meglio da dove parti e posso indicarti quali aspetti della diretta saranno più importanti per te.
+Da quello che mi hai indicato, credo possa essere utile sentirci *5 minuti domani {{fascia_chiamata}} prima del Bootcamp del {{data_bootcamp}} alle {{ora_bootcamp}}*, così capisco meglio da dove parti e posso indicarti quali aspetti della diretta saranno più importanti per te.
 
 *1️⃣ok per domani*
 *2️⃣preferisco cambiare orario*
@@ -82,7 +80,7 @@ Entra qualche minuto prima 👍
 
 nessun problema se in questi giorni non riesci a ritagliarti il tempo per la breve call prima del Bootcamp.
 
-L’importante è non perdere la diretta del *{{data_bootcamp}}*, perché vedremo concretamente:
+L’importante è non perdere la diretta del *{{data_bootcamp}} alle {{ora_bootcamp}}*, perché vedremo concretamente:
 
 ✅ come funziona l’attività
 ✅ gli strumenti disponibili

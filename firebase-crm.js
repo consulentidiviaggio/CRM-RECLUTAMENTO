@@ -553,7 +553,13 @@ Ci vediamo a bordo! 🚢`;
     return error.message || "Accesso non riuscito";
   }
 
+  let dashboardLoading = false;
   async function loadDashboard() {
+    if(dashboardLoading) return false;
+    dashboardLoading = true;
+    const refreshButton = $("#refreshDashboard");
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Aggiornamento…";
     try {
       const code = profile.operatorCode;
       const contactSnap = await db.collection("contacts").where("operatorCode", "==", code).get();
@@ -604,9 +610,15 @@ Ci vediamo a bordo! 🚢`;
         card.onkeydown = event => { if (event.key === "Enter" || event.key === " ") openLead(card.dataset.appointmentContact); };
       });
       renderLeads();
+      return true;
     } catch (error) {
       toast(error.message, true);
       $("#contacts").innerHTML = '<div class="empty">Impossibile caricare i contatti.</div>';
+      return false;
+    } finally {
+      dashboardLoading = false;
+      refreshButton.disabled = false;
+      refreshButton.textContent = "Aggiorna";
     }
   }
 
@@ -1267,6 +1279,9 @@ ${operatorName} | iconsulentidiviaggio.it`;
     noteField.insertAdjacentHTML("beforebegin", '<div class="field"><label>Data e ora (facoltative)</label><input id="calendarWhen" type="datetime-local" /></div>');
     $("#nextForm").onsubmit = saveNextStep;
     $("#bootcampReport").onclick = exportReport;
+    $("#refreshDashboard").onclick = async () => {
+      if(await loadDashboard()) toast("Contatti e appuntamenti aggiornati ✓");
+    };
   }
 
   initUI();

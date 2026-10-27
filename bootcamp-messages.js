@@ -7,13 +7,13 @@ Prima della diretta vorrei capire meglio cosa ti ha spinto a registrarti, così 
 
 *Quale di queste situazioni ti rappresenta di più?*
 
-1️⃣ Cerco una *seconda attività* da affiancare al mio lavoro
+1) Cerco una *seconda attività* da affiancare al mio lavoro
 
-2️⃣ Sono *appassionato di viaggi* e vorrei capire se posso trasformare questa passione in qualcosa di concreto
+2) Sono *appassionato di viaggi* e vorrei capire se posso trasformare questa passione in qualcosa di concreto
 
-3️⃣ Vorrei costruire nel tempo una *vera attività professionale nel turismo*
+3) Vorrei costruire nel tempo una *vera attività professionale nel turismo*
 
-4️⃣ Sono già nel *settore turismo* e voglio conoscere il vostro modello
+4) Sono già nel *settore turismo* e voglio conoscere il vostro modello
 
 Rispondimi semplicemente con *1, 2, 3 o 4* 👍
 
@@ -23,8 +23,8 @@ A presto
 
 Da quello che mi hai indicato, credo possa essere utile sentirci *5 minuti domani {{fascia_chiamata}} prima del Bootcamp del {{data_bootcamp}} alle {{ora_bootcamp}}*, così capisco meglio da dove parti e posso indicarti quali aspetti della diretta saranno più importanti per te.
 
-*1️⃣ok per domani*
-*2️⃣preferisco cambiare orario*
+*1) ok per domani*
+*2) preferisco cambiare orario*
 
 Rispondimi con *1 o 2* per confermare o cambiare orario`},
 {key:'material',label:'3 · Invio materiale',event:'Materiale inviato',text:`Ciao {{nome}} 😊
@@ -90,8 +90,8 @@ L’importante è non perdere la diretta del *{{data_bootcamp}} alle {{ora_bootc
 
 Ti chiedo solo una cosa:
 
-*1️⃣ SÌ, conto di esserci*
-*2️⃣ NON SO ancora se riuscirò*
+*1) SÌ, conto di esserci*
+*2) NON SO ancora se riuscirò*
 
 Rispondimi semplicemente con *1 o 2* 👍`},
 {key:'daybefore',label:'Iscritto il giorno prima',event:'Messaggio iscritto giorno prima',text:`Ciao {{nome}} 😊 sono {{operatore}} di *iconsulentidiviaggio.it*.
@@ -107,8 +107,8 @@ Durante il Bootcamp vedrai concretamente:
 🔗 *Link Zoom*
 {{link_zoom}}
 Per organizzare al meglio la diretta, mi confermi la tua presenza?
-*1️⃣ SÌ, CI SARÒ*
-*2️⃣ NO, NON RIESCO A PARTECIPARE*
+*1) SÌ, CI SARÒ*
+*2) NO, NON RIESCO A PARTECIPARE*
 Rispondimi semplicemente con *1 o 2* 👍`},
 {key:'sameday',label:'Iscritto il giorno stesso',event:'Messaggio iscritto giorno stesso',text:`Ciao {{nome}} 😊 sono {{operatore}} di *iconsulentidiviaggio.it*.
 Ho visto che ti sei registrato al *Bootcamp di questa sera* dedicato all’attività di *Consulente di Viaggio* 🌍✈️
@@ -123,8 +123,8 @@ Durante il Bootcamp vedrai concretamente:
 🔗 *Link Zoom*
 {{link_zoom}}
 Per organizzare al meglio la diretta, mi confermi la tua presenza?
-*1️⃣ SÌ, CI SARÒ*
-*2️⃣ NO, NON RIESCO A PARTECIPARE*
+*1) SÌ, CI SARÒ*
+*2) NO, NON RIESCO A PARTECIPARE*
 Rispondimi semplicemente con *1 o 2* 👍`}
 ];
 window.CRM_WEEKEND_MESSAGE = `Ciao {{nome}} 😊
@@ -137,7 +137,7 @@ Nel weekend non fissiamo appuntamenti per l’attività, quindi riprenderò i co
 
 👉 Posso inserirti tra le chiamate di lunedì?
 
-1️⃣ SÌ, va bene
-2️⃣ Cambio Giorno
+1) SÌ, va bene
+2) Cambio Giorno
 
 Rispondimi semplicemente con 1 oppure 2 👍`;

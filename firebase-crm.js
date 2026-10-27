@@ -972,13 +972,13 @@ Prima della diretta vorrei capire meglio cosa ti ha spinto a registrarti, così 
 
 Quale di queste situazioni ti rappresenta di più?
 
-1️⃣ Cerco una seconda attività da affiancare al mio lavoro
+1) Cerco una seconda attività da affiancare al mio lavoro
 
-2️⃣ Sono appassionato di viaggi e vorrei capire se posso trasformare questa passione in qualcosa di concreto
+2) Sono appassionato di viaggi e vorrei capire se posso trasformare questa passione in qualcosa di concreto
 
-3️⃣ Vorrei costruire nel tempo una vera attività professionale nel turismo
+3) Vorrei costruire nel tempo una vera attività professionale nel turismo
 
-4️⃣ Sono già nel settore turismo e voglio conoscere il vostro modello
+4) Sono già nel settore turismo e voglio conoscere il vostro modello
 
 Rispondimi semplicemente con 1, 2, 3 o 4 👍
 

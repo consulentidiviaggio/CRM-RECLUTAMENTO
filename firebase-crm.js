@@ -340,7 +340,9 @@ Ci vediamo a bordo! 🚢`;
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     window.location.href = isIPhone
       ? "whatsapp-smb://send?" + query
-      : "https://wa.me/" + recipient + (message ? "?text=" + encodeURIComponent(message) : "");
+      : /Android/i.test(navigator.userAgent)
+        ? "https://wa.me/" + recipient + (message ? "?text=" + encodeURIComponent(message) : "")
+        : "whatsapp://send?" + query;
   }
 
   let attendanceSaving = false;
@@ -765,7 +767,7 @@ Ci vediamo a bordo! 🚢`;
     const iOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const android = /Android/i.test(navigator.userAgent);
     const mobile = iOS || android;
-    // Solo il PC usa WhatsApp Web; Android usa il collegamento mobile.
+    // Sul computer apri l’app WhatsApp; Android usa il collegamento mobile.
     const popup = !mobile ? window.open('about:blank','_blank') : null;
     if (!mobile && !popup) return toast('Consenti i popup per aprire WhatsApp',true);
     if(popup) { popup.opener = null; popup.document.body.textContent = 'Salvataggio scheda e apertura WhatsApp…'; }
@@ -776,7 +778,7 @@ Ci vediamo a bordo! 🚢`;
       if(!saved) { popup?.close(); return; }
       const url = iOS ? 'whatsapp-smb://send?phone='+recipient+'&text='+encodeURIComponent(text)
         : android ? 'https://wa.me/'+recipient+'?text='+encodeURIComponent(text)
-        : 'https://web.whatsapp.com/send?phone='+recipient+'&text='+encodeURIComponent(text);
+        : 'whatsapp://send?phone='+recipient+'&text='+encodeURIComponent(text);
       if(mobile) {
         let fallback = $('#openPreparedWhatsApp');
         if(!fallback) {
@@ -818,7 +820,7 @@ Ci vediamo a bordo! 🚢`;
     $("#directQuestions").classList.toggle("hidden", !isDirect);
     $("#leadMeta").textContent = [current.region, current.dateLabel].filter(Boolean).join(" · ");
     ["#call","#topCall"].forEach(s => $(s).href = "tel:" + phone(current.phone));
-    ["#wa","#topWa"].forEach(s => $(s).href = "https://wa.me/39" + phone(current.phone));
+    ["#wa","#topWa"].forEach(s => $(s).href = (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? "https://wa.me/39" + phone(current.phone) : "whatsapp://send?phone=39" + phone(current.phone)));
     $("#leadSheet").classList.remove("hidden");
     document.body.style.overflow = "hidden";
     try {
@@ -997,10 +999,12 @@ ${operatorName} | iconsulentidiviaggio.it`;
       const isIPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       // Su iPhone whatsapp-smb apre direttamente WhatsApp Business.
-      // Sugli altri dispositivi manteniamo il collegamento WhatsApp universale.
+      // Android usa il collegamento universale, il computer apre WhatsApp Desktop.
       const url = isIPhone
         ? "whatsapp-smb://send?" + query
-        : "https://wa.me/" + recipient + "?text=" + encodeURIComponent(firstMessageText());
+        : /Android/i.test(navigator.userAgent)
+          ? "https://wa.me/" + recipient + "?text=" + encodeURIComponent(firstMessageText())
+          : "whatsapp://send?" + query;
       toast("Scheda aggiornata. Apertura WhatsApp Business…");
       window.location.href = url;
     } finally {

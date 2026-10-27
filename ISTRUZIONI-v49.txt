@@ -1,0 +1,9 @@
+CRM Reclutamento - versione 49
+
+Sul computer i messaggi Bootcamp, i messaggi diretti, i messaggi MSC e Costa e il messaggio libero aprono l'app WhatsApp installata. Il pulsante WhatsApp semplice apre la chat nell'app.
+Su iPhone i messaggi mantengono il collegamento a WhatsApp Business. Su Android rimane il collegamento esistente.
+Il click registra gli eventi previsti; l'invio va confermato in WhatsApp.
+
+Installazione: caricare nel repository GitHub i contenuti di questa cartella, sovrascrivendo i file esistenti e mantenendo le cartelle icons e backend se già presenti. Non caricare la cartella come sottocartella. Non serve cambiare Apps Script o Firebase. Attendere la pubblicazione di GitHub Pages e aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=49
+
+Il pacchetto deriva dalla versione 48 disponibile nel workspace. Se il repository contiene modifiche successive, confrontare prima i file per non perderle. Testata la sintassi JavaScript; apertura effettiva dell'app da verificare sul dispositivo.

@@ -1,0 +1,8 @@
+Versione 51: Eventi
+- Partecipanti ordinati prima consulenti e poi ospiti, cognome e nome in ogni gruppo. Rispetta la scelta manuale del ruolo. Stesso criterio per app, PDF ed Excel.
+- Schede Home Eventi con linea verde dalla data iniziale dell'evento, secondo il giorno italiano. Costa LAB 22-26 NOV diventa verde dal 22 novembre.
+- Riconosce mesi italiani completi o abbreviati, intervalli, date gg/mm/aaaa e ISO. Se manca l'anno assume quello corrente; per uno storico affidabile aggiungere l'anno al nome evento. Data non riconosciuta: nessuna linea verde.
+- La linea viene valutata quando si carica la Home Eventi. Non è una conferma di presenza.
+
+Caricare il contenuto della cartella nella radice del repository GitHub sovrascrivendo i file. Non serve modificare Firebase o Apps Script. Aprire ?v=51 dopo la pubblicazione.
+Basato sul repository GitHub attuale (versione 50). Controlli locali: sintassi e simulazione ordinamento/date. Pubblicazione e prova su dispositivi non eseguite.

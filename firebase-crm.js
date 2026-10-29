@@ -155,7 +155,7 @@
         return;
       }
       cards.innerHTML = [...groups.entries()].sort((a,b) => a[0].localeCompare(b[0], "it")).map(([name, people]) => `
-        <article class="event-card">
+        <article class="event-card${shipEventHasStarted(name) ? ' event-started' : ''}">
           <div><span class="event-date">Visita nave</span><h2>${esc(name)}</h2><p>${people.length} partecipanti</p></div>
           <button type="button" data-ship-event="${esc(name)}">Apri evento</button>
         </article>`).join("");
@@ -173,7 +173,7 @@
     $("#shipEventCards").classList.add("hidden");
     $("#shipEventDetail").classList.remove("hidden");
     const allPeople = shipParticipants.filter(person => person.eventName === eventName)
-      .sort((a,b) => (`${a.lastName} ${a.firstName}`).localeCompare(`${b.lastName} ${b.firstName}`, "it"));
+      .sort(compareShipPeople);
     const query = norm($("#shipParticipantSearch")?.value || "");
     const people = query ? allPeople.filter(person => norm([
       person.lastName, person.firstName, person.phone, person.email, person.consultantSurname
@@ -433,10 +433,40 @@ Ci vediamo a bordo! 🚢`;
   function shipPersonIsConsultant(person) {
     return person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
   }
+  function compareShipPeople(a, b) {
+    return Number(shipPersonIsConsultant(b)) - Number(shipPersonIsConsultant(a)) ||
+      String(a.lastName || "").trim().localeCompare(String(b.lastName || "").trim(), "it", {sensitivity:"base"}) ||
+      String(a.firstName || "").trim().localeCompare(String(b.firstName || "").trim(), "it", {sensitivity:"base"});
+  }
+
+  function shipEventStartKey(eventName, today) {
+    const text = String(eventName || "").toUpperCase();
+    const months = {GEN:1,FEB:2,MAR:3,APR:4,MAG:5,GIU:6,LUG:7,AGO:8,SET:9,OTT:10,NOV:11,DIC:12};
+    let match = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+    let year, month, day;
+    if (match) { year=+match[1]; month=+match[2]; day=+match[3]; }
+    else {
+      match = text.match(/\b(\d{1,2})(?:\s*[-–—]\s*\d{1,2})?\s+(GENNAIO|FEBBRAIO|MARZO|APRILE|MAGGIO|GIUGNO|LUGLIO|AGOSTO|SETTEMBRE|OTTOBRE|NOVEMBRE|DICEMBRE|GEN|FEB|MAR|APR|MAG|GIU|LUG|AGO|SET|OTT|NOV|DIC)\b\.?(?:\s+(\d{4}))?/);
+      if (match) { day=+match[1]; month=months[match[2].slice(0,3)]; year=+(match[3] || today.slice(0,4)); }
+      else {
+        match=text.match(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{4}))?\b/);
+        if (!match) return null;
+        day=+match[1]; month=+match[2]; year=+(match[3] || today.slice(0,4));
+      }
+    }
+    const date = new Date(Date.UTC(year, month-1, day));
+    if (date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day) return null;
+    return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  }
+  function shipEventHasStarted(name, now = new Date()) {
+    const today = new Intl.DateTimeFormat("sv-SE", {timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
+    const start=shipEventStartKey(name,today);
+    return Boolean(start && start<=today);
+  }
+
   function sortedShipPeople() {
     return shipParticipants.filter(person => person.eventName === selectedShipEvent)
-      .sort((a,b) => Number(shipPersonIsConsultant(b))-Number(shipPersonIsConsultant(a)) ||
-        `${a.lastName || ""} ${a.firstName || ""}`.localeCompare(`${b.lastName || ""} ${b.firstName || ""}`, "it"));
+      .sort(compareShipPeople);
   }
   function shipPersonValue(person, people) {
     if (shipPersonIsConsultant(person)) return "Consulente";

@@ -1,5 +1,5 @@
-// v50: online only. No contact data, credentials or app code stored in Cache Storage.
-const RELEASE = 'crm-reclutamento-v50';
+// v51: online only. No contact data, credentials or app code stored in Cache Storage.
+const RELEASE = 'crm-reclutamento-v51';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', event => {

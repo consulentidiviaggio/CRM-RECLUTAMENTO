@@ -963,6 +963,10 @@
         .manual-consultant-form h3, .manual-consultant-actions { grid-column:1; }
       }
 
+      .urgent-dropdown {margin:24px 0;border:1px solid #e4e4e7;border-radius:16px;padding:16px;}
+      .urgent-dropdown>summary {cursor:pointer;font-weight:700;}
+      .urgent-dropdown>summary span {display:inline-block;background:#f47b20;color:white;border-radius:20px;padding:2px 10px;margin-left:8px;}
+      .urgent-dropdown[open]>summary {margin-bottom:16px;}
       .urgent-card {border-left:4px solid #c93e30;}
       .urgent-name {font-weight:700;background:none;padding:0;text-align:left;}
       .urgent-card .report-btn {margin-top:12px;}
@@ -1091,8 +1095,10 @@
         <section class="appointments" id="appointments">
           <div class="empty">Caricamento appuntamenti…</div>
         </section>
-        <div class="section-head"><h3>CONTATTI URGENTI</h3></div>
-        <section class="appointments" id="urgentContacts"></section>
+        <details id="urgentDropdown" class="urgent-dropdown">
+          <summary>CONTATTI URGENTI <span id="urgentCount">0</span></summary>
+          <section class="appointments" id="urgentContacts"></section>
+        </details>
         <a id="urgentWhatsAppFallback" class="report-btn hidden">Apri WhatsApp · follow-up già registrato</a>
         <details class="future-appointments"><summary>Prossimi appuntamenti</summary><section class="appointments" id="futureAppointments"></section></details>
         <div class="section-head">
@@ -1895,9 +1901,9 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="bootcamp-messages.js?v=57"></script>
-    <script src="crm-dashboard.js?v=57"></script>
-    <script src="firebase-crm.js?v=57"></script>
-  <script src="pwa.js?v=57"></script>
+    <script src="bootcamp-messages.js?v=58"></script>
+    <script src="crm-dashboard.js?v=58"></script>
+    <script src="firebase-crm.js?v=58"></script>
+  <script src="pwa.js?v=58"></script>
   </body>
 </html>

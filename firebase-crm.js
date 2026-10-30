@@ -673,6 +673,7 @@ Ci vediamo a bordo! 🚢`;
   function renderUrgent() {
     const rows = leads.flatMap(contact => contactAlerts(contact).map(alert => ({contact,alert})))
       .sort((a,b) => a.alert.startedAt-b.alert.startedAt);
+    $('#urgentCount').textContent = rows.length;
     $('#urgentContacts').innerHTML = rows.length ? rows.map(({contact,alert}) =>
       `<article class="appointment urgent-card"><button class="urgent-name" data-urgent-open="${esc(contact.id)}">${esc(contact.name)}</button><p>${esc(alert.reason)}</p><small>Dal ${esc(formatDate(new Date(alert.startedAt)))}</small><button class="report-btn" data-urgent-followup="${esc(contact.id)}" data-phase="${alert.phase}">FOLLOW-UP</button></article>`
     ).join('') : '<div class="empty">Nessun contatto urgente.</div>';

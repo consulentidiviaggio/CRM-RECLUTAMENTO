@@ -1,0 +1,8 @@
+CRM RECLUTAMENTO — VERSIONE 58
+
+CONTATTI URGENTI ora è una sezione espandibile, inizialmente chiusa. Toccare il titolo per aprire o chiudere l’elenco. Il contatore accanto al titolo mostra sempre il numero delle segnalazioni. Aggiornare i dati o registrare un follow-up non modifica lo stato aperto/chiuso della sezione.
+
+Caricare TUTTI i file estratti dallo ZIP nella radice del repository GitHub, confermando le sostituzioni. Attendere la pubblicazione verde in Actions, quindi aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=58
+
+Include gli aggiornamenti precedenti. Nessuna modifica a Firebase o Apps Script.

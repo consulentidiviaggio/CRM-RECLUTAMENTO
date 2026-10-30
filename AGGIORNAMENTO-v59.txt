@@ -1,0 +1,13 @@
+CRM RECLUTAMENTO — VERSIONE 59
+
+Link partecipazione nella tendina raggruppa Link Bootcamp inviato, Messaggio iscritto giorno prima, Messaggio iscritto giorno stesso e Reminder Bootcamp inviato. Quando una di queste azioni è l’ultima registrata, ULTIMA AZIONE nell’app e nell’Excel mostra Link partecipazione. La timeline e il foglio CRONOLOGIA mantengono il nome specifico del messaggio. I pulsanti dei messaggi precompilati restano disponibili nella scheda.
+
+Rimossi dai tasti rapidi e dai filtri Post Bootcamp 1 e Post Bootcamp 2. Gli eventi storici non sono cancellati.
+Richiesta offerta Bootcamp rinominata Richiesta promo Bootcamp; Richiesta app. post Bootcamp rinominata Richiesta chiamata post Bootcamp. Le vecchie registrazioni sono riconosciute senza modifiche ai dati.
+Questi due tasti salvano subito la scheda e l’evento e aprono la chat WhatsApp del contatto. Nessun testo precompilato aggiunto: i testi devono ancora essere forniti. Un secondo clic rimuove l’evento senza aprire WhatsApp. Su iPhone apertura Business, su Android collegamento mobile, su PC app WhatsApp. Nessun nuovo alert automatico.
+
+Caricare tutti i file estratti nella radice GitHub, confermando le sostituzioni. Attendere la pubblicazione verde, poi aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=59
+Non occorre modificare Firebase o Apps Script.
+
+Test locali delle regole e simulazioni dei due profili superati, inclusi raggruppamento dei quattro messaggi, salvataggio/rimozione delle richieste e apertura WhatsApp simulata. Verificare l’apertura dell’app WhatsApp sui dispositivi dopo la pubblicazione.

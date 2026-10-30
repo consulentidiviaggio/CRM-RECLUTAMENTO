@@ -20,8 +20,7 @@
     "Non risponde", "Numero non raggiungibile", "Materiale inviato", "Interesse confermato",
     "Zoom proposta", "Bootcamp confermato", "Da richiamare",
     "Non interessato", "Attivo come consulente",
-    "Post Bootcamp 1", "Post Bootcamp 2",
-    "Richiesta offerta Bootcamp", "Richiesta app. post Bootcamp"
+    "Richiesta promo Bootcamp", "Richiesta chiamata post Bootcamp"
   ];
   const answerFields = [
     "MOTIVAZIONE PRINCIPALE", "ESPERIENZA TURISMO", "ORGANIZZA GIÀ VIAGGI",
@@ -620,7 +619,7 @@ Ci vediamo a bordo! 🚢`;
       dashboardEvents.forEach(event => {
         if(!event.leadId) return;
         if(!leadMessageEvents.has(event.leadId)) leadMessageEvents.set(event.leadId, new Set());
-        leadMessageEvents.get(event.leadId).add(String(event.type || "").trim());
+        leadMessageEvents.get(event.leadId).add(dashboardRules.phase(String(event.type || "").trim()));
       });
       const stepSnap = await db.collection("nextSteps").where("operatorCode", "==", code).get();
       const now = Date.now();
@@ -755,7 +754,7 @@ Ci vediamo a bordo! 🚢`;
       const c = statusClass(l.status);
       const state = filter === "all" || (filter === "todo" && c === "todo") ||
         (filter === "rejected" && c === "rejected") || (filter === "worked" && c !== "todo") ||
-        (filter.startsWith("message:") && leadMessageEvents.get(l.id)?.has(filter.slice(8)));
+        (filter === "message:Link Bootcamp inviato" ? [...(leadMessageEvents.get(l.id) || [])].some(type => type === "Link partecipazione" || dashboardRules.linkDelivered(type)) : (filter.startsWith("message:") && leadMessageEvents.get(l.id)?.has(filter.slice(8))));
       const typeMatches = typeFilter === "all" || l.contactType === typeFilter;
       return state && typeMatches && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
     });
@@ -763,7 +762,7 @@ Ci vediamo a bordo! 🚢`;
     $("#contacts").innerHTML = list.length ? list.map(l => {
       const history = contactHistory(l.id), latest = history[history.length-1];
       const alerts = contactAlerts(l);
-      return `<article class="contact contact-summary"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.email || '')} · ${esc(l.phone || '')}</p><p>${esc(l.region || '')} · Affiliato: ${esc(l.affiliate || l.affiliato || l.source || '')}</p><span class="status ${statusClass(l.status)}">${esc(l.status || 'Da lavorare')}</span><div class="last-action"><strong>ULTIMA AZIONE</strong><p>${latest ? esc(latest.type) : 'Nessuna azione registrata'}</p>${alerts.map(a => `<p class="urgent-label">${esc(a.reason)}</p>`).join('')}<details><summary>Timeline completa (${history.length})</summary>${history.length ? '<ol>'+history.map(e => `<li><time>${esc(formatDate(e.createdAt))}</time> · ${esc(e.type)}${e.note || e.detail ? '<p>'+esc(e.note || e.detail)+'</p>' : ''}</li>`).join('')+'</ol>' : '<p>Nessuna attività registrata.</p>'}</details></div></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`;
+      return `<article class="contact contact-summary"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.email || '')} · ${esc(l.phone || '')}</p><p>${esc(l.region || '')} · Affiliato: ${esc(l.affiliate || l.affiliato || l.source || '')}</p><span class="status ${statusClass(l.status)}">${esc(l.status || 'Da lavorare')}</span><div class="last-action"><strong>ULTIMA AZIONE</strong><p>${latest ? esc(dashboardRules.phase(latest.type)) : 'Nessuna azione registrata'}</p>${alerts.map(a => `<p class="urgent-label">${esc(a.reason)}</p>`).join('')}<details><summary>Timeline completa (${history.length})</summary>${history.length ? '<ol>'+history.map(e => `<li><time>${esc(formatDate(e.createdAt))}</time> · ${esc(e.type)}${e.note || e.detail ? '<p>'+esc(e.note || e.detail)+'</p>' : ''}</li>`).join('')+'</ol>' : '<p>Nessuna attività registrata.</p>'}</details></div></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`;
     }).join('') : '<div class="empty">Nessun contatto trovato.</div>';
     $$('[data-open]').forEach(b => b.onclick = () => openLead(b.dataset.open));
   }
@@ -898,6 +897,38 @@ Ci vediamo a bordo! 🚢`;
     finally { messageSaving = false; renderBootcampMessages(); }
   }
 
+  function requestType(type) {
+    return type === 'Richiesta offerta Bootcamp' ? 'Richiesta promo Bootcamp'
+      : type === 'Richiesta app. post Bootcamp' ? 'Richiesta chiamata post Bootcamp' : String(type || '').trim();
+  }
+  async function saveRequestAndOpenWhatsApp(button,type) {
+    if(!current || !phone(current.phone)) return toast('Cellulare non disponibile',true);
+    const removing=savedEvents.has(type);
+    const iOS=/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const android=/Android/i.test(navigator.userAgent);
+    const popup=!removing && !iOS && !android ? window.open('about:blank','_blank') : null;
+    if(!removing && !iOS && !android && !popup) return toast('Consenti i popup per aprire WhatsApp',true);
+    if(popup) { popup.opener=null; popup.document.body.textContent='Salvataggio richiesta e apertura WhatsApp…'; }
+    messageSaving=true;
+    $$('.event').forEach(b => b.disabled=true);
+    if(removing) button.classList.add('remove-pending');
+    try {
+      const saved=await saveContact(removing ? [] : [type]);
+      if(!saved) { popup?.close(); button.classList.remove('remove-pending'); return; }
+      if(removing) return;
+      const recipient='39'+phone(current.phone);
+      const url=iOS ? 'whatsapp-smb://send?phone='+recipient : android ? 'https://wa.me/'+recipient : 'whatsapp://send?phone='+recipient;
+      if(popup) popup.location.href=url;
+      else {
+        let fallback=$('#openRequestWhatsApp');
+        if(!fallback) { fallback=document.createElement('a');fallback.id='openRequestWhatsApp';fallback.className='report-btn';$('#copyContactLink').after(fallback); }
+        fallback.href=url;fallback.textContent='Apri WhatsApp · richiesta registrata';
+        window.location.href=url;
+      }
+    } catch(error) { popup?.close();toast(error.message,true); }
+    finally { messageSaving=false;$$('.event').forEach(b => b.disabled=false); }
+  }
+
   function contactLink(id) {
     const url = new URL(location.href);
     url.search = '';
@@ -941,6 +972,7 @@ Ci vediamo a bordo! 🚢`;
   async function openLead(id) {
     if (messageSaving) return toast("Attendi il salvataggio del messaggio");
     $("#openPreparedWhatsApp")?.remove();
+    $("#openRequestWhatsApp")?.remove();
     $("#bootcampMessageButtons").innerHTML = "";
     $("#bootcampMessaging").classList.add("hidden");
     current = leads.find(l => String(l.id) === String(id));
@@ -989,11 +1021,11 @@ Ci vediamo a bordo! 🚢`;
   function timeline(events) {
     currentEvents = events;
     if(current) {
-      leadMessageEvents.set(current.id, new Set(events.map(e => String(e.type || "").trim())));
+      leadMessageEvents.set(current.id, new Set(events.map(e => requestType(e.type))));
       dashboardEvents = dashboardEvents.filter(e => e.leadId !== current.id).concat(events.filter(e => !e.deleted).map(e => ({...e,leadId:current.id})));
     }
     setTimeout(refreshBootcampMessageStates, 0);
-    savedEvents = new Set(events.map(e => String(e.type || "").trim()));
+    savedEvents = new Set(events.map(e => requestType(e.type)));
     $$('.event').forEach(b => {
       const saved = savedEvents.has(b.textContent.trim());
       b.classList.toggle("saved", saved);
@@ -1023,7 +1055,7 @@ Ci vediamo a bordo! 🚢`;
     button.disabled = true;
     button.textContent = "Aggiornamento…";
     try {
-      const remainingEvents = currentEvents.filter(event => !removedEvents.includes(String(event.type || "").trim()));
+      const remainingEvents = currentEvents.filter(event => !removedEvents.includes(requestType(event.type)));
       const activeTypes = remainingEvents.map(event => event.type).concat(newEvents);
       const status = combinedStatus(activeTypes, "Da lavorare", answers);
       const batch = db.batch();
@@ -1040,7 +1072,7 @@ Ci vediamo a bordo! 🚢`;
           createdAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       });
-      currentEvents.filter(event => removedEvents.includes(String(event.type || "").trim())).forEach(event => {
+      currentEvents.filter(event => removedEvents.includes(requestType(event.type))).forEach(event => {
         batch.update(db.collection("events").doc(event.id), {
           deleted:true,
           deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
@@ -1344,7 +1376,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
           "AFFILIATO":contact.affiliate || contact.affiliato || contact.source || '',
           "PROVENIENZA":contact.contactType || 'BOOTCAMP',"DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
           "STATO":contact.status || 'Da lavorare',
-          "ULTIMA AZIONE":[latest ? latest.type : 'Nessuna azione',urgent].filter(Boolean).join(' · '),
+          "ULTIMA AZIONE":[latest ? dashboardRules.phase(latest.type) : 'Nessuna azione',urgent].filter(Boolean).join(' · '),
           "NOTE CHIAMATA":contact.answers?.['NOTE CHIAMATA'] || ''
         };
       });
@@ -1403,23 +1435,8 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $$('.event').forEach(b => b.onclick = async () => {
       if (messageSaving) return;
       const type = b.textContent.trim();
-      if (["Post Bootcamp 1", "Post Bootcamp 2", "Richiesta offerta Bootcamp", "Richiesta app. post Bootcamp"].includes(type)) {
-        messageSaving = true;
-        $$('.event').forEach(button => button.disabled = true);
-        const removing = savedEvents.has(type);
-        if (removing) b.classList.add("remove-pending");
-        try {
-          const saved = await saveContact(removing ? [] : [type]);
-          if (!saved && removing) b.classList.remove("remove-pending");
-          if (saved) {
-            if (!leadMessageEvents.has(current.id)) leadMessageEvents.set(current.id, new Set());
-            if (removing) leadMessageEvents.get(current.id).delete(type);
-            else leadMessageEvents.get(current.id).add(type);
-          }
-        } finally {
-          messageSaving = false;
-          $$('.event').forEach(button => button.disabled = false);
-        }
+      if (["Richiesta promo Bootcamp", "Richiesta chiamata post Bootcamp"].includes(type)) {
+        await saveRequestAndOpenWhatsApp(b,type);
         return;
       }
       if (savedEvents.has(type)) {

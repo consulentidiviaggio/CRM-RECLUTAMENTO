@@ -42,6 +42,15 @@
     const known=[first,call,material,followup,'Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Link Bootcamp inviato','Reminder Bootcamp inviato','Non interessato','Attivo come consulente','Attivazione completata'];
     return known.find(type => type.toLocaleLowerCase('it') === normalized) || String(value || '').trim();
   }
+  function linkDelivered(type) {
+    return ['Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Link Bootcamp inviato','Reminder Bootcamp inviato'].includes(eventType(type));
+  }
+  function phase(type) {
+    if(linkDelivered(type)) return 'Link partecipazione';
+    if(type === 'Richiesta offerta Bootcamp') return 'Richiesta promo Bootcamp';
+    if(type === 'Richiesta app. post Bootcamp') return 'Richiesta chiamata post Bootcamp';
+    return type;
+  }
   function urgent(contact, events, now = Date.now()) {
     const history = ordered(events).map(event => ({...event,type:eventType(event.type)}));
     if (history.some(e => [material,'Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Link Bootcamp inviato','Reminder Bootcamp inviato','Non interessato','Attivo come consulente','Attivazione completata'].includes(e.type))) return [];
@@ -65,7 +74,7 @@
   function appointmentVisible(step, now = Date.now()) {
     return !!romeDay(step.when) && romeDay(step.when) >= romeDay(now) && !['COMPLETATO','CANCELLATO'].includes(String(step.status||'').toUpperCase());
   }
-  const api = {millis,romeDay,nextRomeMidnight,ordered,urgent,appointmentVisible};
+  const api = {millis,romeDay,nextRomeMidnight,ordered,urgent,appointmentVisible,linkDelivered,phase};
   if (typeof module !== 'undefined') module.exports = api;
   else root.CRM_DASHBOARD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

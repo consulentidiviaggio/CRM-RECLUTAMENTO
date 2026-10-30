@@ -1,0 +1,21 @@
+CRM RECLUTAMENTO — VERSIONE 56
+
+AGGIUNTE
+- Evento rapido “Richiesta offerta Bootcamp”.
+- Evento rapido “Richiesta app. post Bootcamp”.
+Il clic salva subito la scheda e l’evento nella timeline; un secondo clic rimuove l’evento, come per Post Bootcamp 1 e 2. Le due voci sono disponibili nella tendina dei filtri e in ULTIMA AZIONE quando sono l’attività più recente. Nessun invio WhatsApp o nuovo alert automatico.
+
+- Pulsante “Copia link scheda” nella scheda contatto. Copia il link diretto da incollare manualmente nelle note di WhatsApp Business. Se il browser impedisce la copia, mostra il link da copiare manualmente.
+- Aprendo il link, effettuare l’accesso come al solito: si aprirà il contatto corretto, anche se appartiene a un Bootcamp precedente. Il link non consente l’accesso ai contatti di un altro operatore.
+- I nuovi appuntamenti creati tramite l’app includono nelle note del calendario lo stesso link diretto. Gli appuntamenti già esistenti non vengono modificati.
+
+INSTALLAZIONE
+Estrarre lo ZIP. Caricare TUTTI i file estratti nella radice del repository GitHub consulentidiviaggio/CRM-RECLUTAMENTO, ramo main, confermando le sostituzioni. Attendere la pubblicazione verde in Actions.
+Aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=56
+Chiudere e riaprire la PWA su telefono dopo la pubblicazione.
+Non occorre aggiornare Firebase, password, Apps Script o deployment Google.
+
+Incluse tutte le modifiche v53-v55. Nessun testo WhatsApp modificato e nessuna nota WhatsApp aggiornata automaticamente.
+
+VERIFICHE
+Sintassi, regole precedenti della dashboard e simulazione interfaccia Stefano/Fabio. Verificati copia link, apertura dopo login, rifiuto link di altro operatore, salvataggio/rimozione dei due eventi e presenza nei filtri. Nessuna scrittura sui dati reali durante le prove. Da verificare sui dispositivi dopo la pubblicazione.

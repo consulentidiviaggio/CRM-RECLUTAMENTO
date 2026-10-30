@@ -20,7 +20,8 @@
     "Non risponde", "Numero non raggiungibile", "Materiale inviato", "Interesse confermato",
     "Zoom proposta", "Bootcamp confermato", "Da richiamare",
     "Non interessato", "Attivo come consulente",
-    "Post Bootcamp 1", "Post Bootcamp 2"
+    "Post Bootcamp 1", "Post Bootcamp 2",
+    "Richiesta offerta Bootcamp", "Richiesta app. post Bootcamp"
   ];
   const answerFields = [
     "MOTIVAZIONE PRINCIPALE", "ESPERIENZA TURISMO", "ORGANIZZA GIÀ VIAGGI",
@@ -575,6 +576,7 @@ Ci vediamo a bordo! 🚢`;
       showApp(requestedLevel);
       if (requestedLevel === "admin") renderAdmin();
       else if (!isStefano()) await loadDashboard();
+      if(requestedLevel !== "admin") await openLinkedContact();
     } catch (error) {
       $("#loginError").textContent = authMessage(error);
     } finally {
@@ -760,7 +762,7 @@ Ci vediamo a bordo! 🚢`;
     $("#contacts").innerHTML = list.length ? list.map(l => {
       const history = contactHistory(l.id), latest = history[history.length-1];
       const alerts = contactAlerts(l);
-      return `<article class="contact contact-summary"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.email || '')} · ${esc(l.phone || '')}</p><p>${esc(l.region || '')} · Affiliato: ${esc(l.affiliate || l.affiliato || l.source || '')}</p><span class="status ${statusClass(l.status)}">${esc(l.status || 'Da lavorare')}</span><div class="last-action"><strong>ULTIMA AZIONE</strong><p>${latest ? esc(latest.type)+' · '+esc(formatDate(latest.createdAt)) : 'Nessuna azione registrata'}</p>${alerts.map(a => `<p class="urgent-label">${esc(a.reason)}</p>`).join('')}<details><summary>Timeline completa (${history.length})</summary>${history.length ? '<ol>'+history.map(e => `<li><time>${esc(formatDate(e.createdAt))}</time> · ${esc(e.type)}${e.note || e.detail ? '<p>'+esc(e.note || e.detail)+'</p>' : ''}</li>`).join('')+'</ol>' : '<p>Nessuna attività registrata.</p>'}</details></div></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`;
+      return `<article class="contact contact-summary"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.email || '')} · ${esc(l.phone || '')}</p><p>${esc(l.region || '')} · Affiliato: ${esc(l.affiliate || l.affiliato || l.source || '')}</p><span class="status ${statusClass(l.status)}">${esc(l.status || 'Da lavorare')}</span><div class="last-action"><strong>ULTIMA AZIONE</strong><p>${latest ? esc(latest.type) : 'Nessuna azione registrata'}</p>${alerts.map(a => `<p class="urgent-label">${esc(a.reason)}</p>`).join('')}<details><summary>Timeline completa (${history.length})</summary>${history.length ? '<ol>'+history.map(e => `<li><time>${esc(formatDate(e.createdAt))}</time> · ${esc(e.type)}${e.note || e.detail ? '<p>'+esc(e.note || e.detail)+'</p>' : ''}</li>`).join('')+'</ol>' : '<p>Nessuna attività registrata.</p>'}</details></div></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`;
     }).join('') : '<div class="empty">Nessun contatto trovato.</div>';
     $$('[data-open]').forEach(b => b.onclick = () => openLead(b.dataset.open));
   }
@@ -893,6 +895,46 @@ Ci vediamo a bordo! 🚢`;
       toast('Evento registrato al click. Conferma l’invio in WhatsApp.');
     } catch(error) { popup?.close(); toast(error.message,true); }
     finally { messageSaving = false; renderBootcampMessages(); }
+  }
+
+  function contactLink(id) {
+    const url = new URL(location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('contact',id);
+    return url.href;
+  }
+  async function copyContactLink() {
+    if(!current) return;
+    const link=contactLink(current.id);
+    try {
+      if(!navigator.clipboard?.writeText) throw new Error('Clipboard non disponibile');
+      await navigator.clipboard.writeText(link);
+      toast('Link scheda copiato. Incollalo nelle note di WhatsApp Business.');
+    } catch {
+      window.prompt('Copia questo link e incollalo nelle note di WhatsApp Business:',link);
+    }
+  }
+  async function openLinkedContact() {
+    const id=new URLSearchParams(location.search).get('contact');
+    if(!id) return;
+    try {
+      // Il link non autorizza l’accesso: controlla sempre il proprietario del documento.
+      const snap=await db.collection('contacts').doc(id).get();
+      if(!snap.exists || snap.data().operatorCode !== profile.operatorCode)
+        return toast('Contatto non disponibile per questo profilo.',true);
+      hideWorkAreas();
+      $('#operatorApp').classList.remove('hidden');
+      if(!await loadDashboard()) return;
+      if(!leads.some(c => c.id === id)) {
+        const data=snap.data();
+        leads.push({id,...data,name:data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+          contactType:norm(data.contactType)==='DIRETTO'?'DIRETTO':'BOOTCAMP',
+          dateLabel:formatDate(data.importedAt || data.registrationDate),
+          bootcampLabel:norm(data.contactType)==='DIRETTO'?'Contatto diretto':'Bootcamp '+formatDate(data.bootcampDate,false)});
+      }
+      await openLead(id);
+    } catch(error) { toast('Impossibile aprire il contatto: '+error.message,true); }
   }
 
   async function openLead(id) {
@@ -1127,7 +1169,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
       "Nome: " + current.name, "Telefono: " + (current.phone || "Non indicato"),
       current.bootcampLabel || "Bootcamp non indicato", "Azione: " + type,
       "Ultimo evento rapido: " + (lastEvent || "Nessuno"),
-      "Nota: " + (note || "—"), "Contatto CRM: " + current.id, location.href
+      "Nota: " + (note || "—"), "Contatto CRM: " + current.id, contactLink(current.id)
     ].join("\n");
     const params = { action:"TEMPLATE", text:type + " – " + current.name, details };
     if (when && !isNaN(when)) {
@@ -1301,7 +1343,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
           "AFFILIATO":contact.affiliate || contact.affiliato || contact.source || '',
           "PROVENIENZA":contact.contactType || 'BOOTCAMP',"DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
           "STATO":contact.status || 'Da lavorare',
-          "ULTIMA AZIONE":[latest ? latest.type+' · '+formatDate(latest.createdAt) : 'Nessuna azione',urgent].filter(Boolean).join(' · '),
+          "ULTIMA AZIONE":[latest ? latest.type : 'Nessuna azione',urgent].filter(Boolean).join(' · '),
           "NOTE CHIAMATA":contact.answers?.['NOTE CHIAMATA'] || ''
         };
       });
@@ -1360,7 +1402,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $$('.event').forEach(b => b.onclick = async () => {
       if (messageSaving) return;
       const type = b.textContent.trim();
-      if (type === "Post Bootcamp 1" || type === "Post Bootcamp 2") {
+      if (["Post Bootcamp 1", "Post Bootcamp 2", "Richiesta offerta Bootcamp", "Richiesta app. post Bootcamp"].includes(type)) {
         messageSaving = true;
         $$('.event').forEach(button => button.disabled = true);
         const removing = savedEvents.has(type);
@@ -1387,6 +1429,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
     });
     $("#updateContact").onclick = () => { if(!messageSaving) saveContact(); };
     $("#firstMessage").onclick = saveAndOpenWhatsApp;
+    $("#copyContactLink").onclick = copyContactLink;
     $("#bootcampConfigForm").onsubmit = saveBootcampConfig;
     $("#next").onclick = openNextStep;
     $("#cancelStep").onclick = () => $("#nextDialog").close();

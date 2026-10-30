@@ -27,7 +27,7 @@
   }
   function urgent(contact, events, now = Date.now()) {
     const history = ordered(events);
-    if (history.some(e => [material,'Non interessato','Attivo come consulente','Attivazione completata'].includes(e.type))) return [];
+    if (history.some(e => [material,'Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Non interessato','Attivo come consulente','Attivazione completata'].includes(e.type))) return [];
     // Queste fasi usano i messaggi Bootcamp; il flusso dei diretti resta invariato.
     if (String(contact.contactType || '').toUpperCase() === 'DIRETTO') return [];
     const progress = new Set([call,'Primo appuntamento fissato','Appuntamento fissato','Chiamata fissata','Chiamata effettuata','Telefonata effettuata','Interesse confermato','Zoom proposta','Bootcamp confermato','Link Bootcamp inviato','Reminder Bootcamp inviato','Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Post Bootcamp 1','Post Bootcamp 2']);

@@ -1,0 +1,12 @@
+CRM RECLUTAMENTO — VERSIONE 57
+
+Corretti gli alert pre-Bootcamp: entrambi vengono chiusi se nella timeline attiva è presente Materiale inviato oppure uno dei messaggi con il link: Messaggio iscritto giorno prima, Messaggio iscritto giorno stesso, Link Bootcamp inviato, Reminder Bootcamp inviato.
+Riconosciute anche le diciture Iscritto il giorno prima/stesso, Messaggio iscritto il giorno prima/stesso, Link partecipazione inviato, Link Zoom inviato, con tolleranza per maiuscole e spazi.
+Le regole si applicano anche alla cronologia già registrata, senza modificarla. I messaggi rimossi non chiudono gli alert. Il percorso post-Bootcamp resta disponibile e non genera nuovi alert.
+
+INSTALLAZIONE
+Estrarre e caricare TUTTI i file nella radice del repository GitHub. È indispensabile sostituire crm-dashboard.js: contiene la correzione. Attendere la pubblicazione verde in Actions.
+Aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=57 e premere Aggiorna. Chiudere e riaprire la PWA dopo la pubblicazione.
+Non occorre modificare Firebase o Apps Script. Nessuna cancellazione di timeline, appuntamenti o note.
+
+Verifiche locali delle regole e simulazioni interfaccia dei due profili superate. Nessun accesso ai singoli eventi reali dei contatti durante le prove.

@@ -25,9 +25,26 @@
   function ordered(events) {
     return events.filter(e => !e.deleted).slice().sort((a,b) => millis(a.createdAt)-millis(b.createdAt) || String(a.id||'').localeCompare(String(b.id||'')));
   }
+  function eventType(value) {
+    const normalized = String(value || '').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('it');
+    const aliases = {
+      'iscritto il giorno prima':'Messaggio iscritto giorno prima',
+      'messaggio iscritto il giorno prima':'Messaggio iscritto giorno prima',
+      'iscritto giorno prima':'Messaggio iscritto giorno prima',
+      'iscritto il giorno stesso':'Messaggio iscritto giorno stesso',
+      'messaggio iscritto il giorno stesso':'Messaggio iscritto giorno stesso',
+      'iscritto giorno stesso':'Messaggio iscritto giorno stesso',
+      'link partecipazione':'Link Bootcamp inviato',
+      'link partecipazione inviato':'Link Bootcamp inviato',
+      'link zoom inviato':'Link Bootcamp inviato'
+    };
+    if(aliases[normalized]) return aliases[normalized];
+    const known=[first,call,material,followup,'Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Link Bootcamp inviato','Reminder Bootcamp inviato','Non interessato','Attivo come consulente','Attivazione completata'];
+    return known.find(type => type.toLocaleLowerCase('it') === normalized) || String(value || '').trim();
+  }
   function urgent(contact, events, now = Date.now()) {
-    const history = ordered(events);
-    if (history.some(e => [material,'Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Non interessato','Attivo come consulente','Attivazione completata'].includes(e.type))) return [];
+    const history = ordered(events).map(event => ({...event,type:eventType(event.type)}));
+    if (history.some(e => [material,'Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Link Bootcamp inviato','Reminder Bootcamp inviato','Non interessato','Attivo come consulente','Attivazione completata'].includes(e.type))) return [];
     // Queste fasi usano i messaggi Bootcamp; il flusso dei diretti resta invariato.
     if (String(contact.contactType || '').toUpperCase() === 'DIRETTO') return [];
     const progress = new Set([call,'Primo appuntamento fissato','Appuntamento fissato','Chiamata fissata','Chiamata effettuata','Telefonata effettuata','Interesse confermato','Zoom proposta','Bootcamp confermato','Link Bootcamp inviato','Reminder Bootcamp inviato','Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Post Bootcamp 1','Post Bootcamp 2']);

@@ -1,0 +1,31 @@
+CRM RECLUTAMENTO — VERSIONE 53
+
+COME CARICARE L’AGGIORNAMENTO
+1. Estrai lo ZIP sul computer.
+2. Apri su GitHub il repository consulentidiviaggio/CRM-RECLUTAMENTO, ramo main.
+3. Add file > Upload files. Carica nella radice tutti i file estratti (non la cartella e non lo ZIP). Conferma con Commit changes.
+4. Attendi il completamento verde della pubblicazione Pages in Actions.
+5. Apri https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=53
+   Su iPhone/Android chiudi e riapri la PWA dopo la pubblicazione.
+
+IMPORTANTE: crm-dashboard.js è un NUOVO file, necessario insieme a index.html e firebase-crm.js. Sostituire soltanto index.html non basta.
+Non occorre modificare Apps Script, deployment Google, proprietà password o attivatori di importazione.
+
+NOVITÀ
+- Appuntamenti di oggi visibili fino alla mezzanotte italiana, anche dopo l’orario previsto. Archivio invariato. Gli appuntamenti futuri sono nella sezione espandibile Prossimi appuntamenti.
+- CONTATTI URGENTI: 5 giorni dal primo messaggio senza progressione; 5 giorni dalla proposta chiamata senza Materiale inviato.
+- FOLLOW-UP dalla dashboard: stesso testo già presente, apertura WhatsApp con dati del contatto, evento con data/ora e chiusura persistente della specifica segnalazione. L’invio rimane manuale.
+- Il primo clic avvia la scadenza: clic ripetuti nella stessa fase non ricominciano il conteggio. Nessun alert aggiuntivo dai reminder, dal materiale o dalle fasi post Bootcamp.
+- Materiale inviato chiude i due alert, mantenendo il resto del percorso.
+- Una nota non è una progressione. Proposta/chiamata fissata o effettuata, interesse/conferma Bootcamp e messaggi successivi chiudono il primo alert; il secondo resta fino al materiale o al follow-up (o alla chiusura del contatto).
+- I follow-up già registrati vengono riconosciuti; non occorre reinserire la cronologia.
+- I due alert riguardano il flusso messaggi Bootcamp. I contatti diretti conservano il loro flusso e il loro messaggio attuale.
+- Riepilogo nell’app con anagrafica, ultima azione/data/segnalazione e timeline espandibile in ordine cronologico.
+- Excel semplificato: RIEPILOGO con anagrafica, fonte/stato/Bootcamp, ULTIMA AZIONE e note; CRONOLOGIA con tutte le attività non rimosse. Include i contatti visibili dell’operatore, anche diretti.
+- Conservate le modifiche v51/v52 (ordine partecipanti, eventi iniziati, Post Bootcamp 1 e 2).
+
+CONTROLLO DOPO LA PUBBLICAZIONE
+Accedi come Stefano e Fabio; controlla contatti e accessi separati. Se compare un urgente, premi FOLLOW-UP e verifica apertura WhatsApp e registrazione della timeline; aggiorna da un secondo dispositivo per verificare la chiusura. Scarica anche il riepilogo Excel.
+
+VALIDAZIONE LOCALE
+Verificate soglia cinque giorni, progressione, rimozione eventi, follow-up, duplicati e mezzanotte italiana compreso cambio ora legale/solare. Simulati nell’interfaccia i due profili, isolamento contatti, salvataggio e chiusura persistente, errore di salvataggio senza perdita dell’alert, timeline ed export. Test con dati fittizi, nessuna modifica ai dati reali. La prova grafica in un browser reale e le autorizzazioni Firebase di produzione richiedono verifica dopo la pubblicazione.

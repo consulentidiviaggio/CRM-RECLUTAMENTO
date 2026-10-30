@@ -19,7 +19,8 @@
     "Primo messaggio inviato", "Primo appuntamento fissato",
     "Non risponde", "Numero non raggiungibile", "Materiale inviato", "Interesse confermato",
     "Zoom proposta", "Bootcamp confermato", "Da richiamare",
-    "Non interessato", "Attivo come consulente"
+    "Non interessato", "Attivo come consulente",
+    "Post Bootcamp 1", "Post Bootcamp 2"
   ];
   const answerFields = [
     "MOTIVAZIONE PRINCIPALE", "ESPERIENZA TURISMO", "ORGANIZZA GIÀ VIAGGI",
@@ -37,6 +38,8 @@
   let currentEvents = [];
   let savedEvents = new Set();
   let leadMessageEvents = new Map();
+  let dashboardEvents = [];
+  const dashboardRules = window.CRM_DASHBOARD;
   let shipParticipants = [];
   let selectedShipEvent = "";
   const $ = s => document.querySelector(s);
@@ -611,36 +614,29 @@ Ci vediamo a bordo! 🚢`;
       });
       const messageSnap = await db.collection("events").where("operatorCode", "==", code).get();
       leadMessageEvents = new Map();
-      messageSnap.docs.forEach(doc => {
-        const event = doc.data();
-        if(event.deleted || !event.leadId) return;
+      dashboardEvents = messageSnap.docs.map(doc => ({id:doc.id,...doc.data()})).filter(e => !e.deleted);
+      dashboardEvents.forEach(event => {
+        if(!event.leadId) return;
         if(!leadMessageEvents.has(event.leadId)) leadMessageEvents.set(event.leadId, new Set());
         leadMessageEvents.get(event.leadId).add(String(event.type || "").trim());
       });
       const stepSnap = await db.collection("nextSteps").where("operatorCode", "==", code).get();
       const now = Date.now();
       appointments = stepSnap.docs.map(d => ({ id:d.id, ...d.data() }))
-        .filter(s => jsDate(s.when) && jsDate(s.when).getTime() >= now && !["COMPLETATO","CANCELLATO"].includes(norm(s.status)))
-        .sort((a,b) => jsDate(a.when) - jsDate(b.when)).slice(0,9);
+        .filter(s => dashboardRules.appointmentVisible(s, now))
+        .sort((a,b) => jsDate(a.when) - jsDate(b.when));
       const isStefano = profile.operatorCode === "ST";
       $("#bootcampDate").textContent = isStefano ? "Tutti i contatti" : (latest ? "Bootcamp " + formatDate(new Date(latest + "T12:00:00"), false) : "Ultimo Bootcamp");
       $("#typeFilter").classList.toggle("hidden", !isStefano);
       $("#totalCount").nextElementSibling.textContent = isStefano ? "Contatti" : "Contatti Bootcamp";
-      $("#contacts").previousElementSibling.previousElementSibling.querySelector("h3").textContent = isStefano ? "Contatti da lavorare" : "Contatti dell’ultimo Bootcamp";
+      $("#contactsHeading").textContent = isStefano ? "Riepilogo contatti" : "Riepilogo contatti dell’ultimo Bootcamp";
       const todo = leads.filter(l => statusClass(l.status) === "todo").length;
       $("#totalCount").textContent = leads.length;
       $("#todoCount").textContent = todo;
       $("#workedCount").textContent = leads.length - todo;
       $("#appointmentCount").textContent = appointments.length;
-      $("#appointments").innerHTML = appointments.length ? appointments.map(a =>
-        `<article class="appointment" data-appointment-contact="${esc(a.leadId)}" role="button" tabindex="0"><strong>${esc(a.type)} · ${esc(a.contactName)}</strong><small>${esc(formatDate(a.when))}${a.note ? " · "+esc(a.note) : ""}</small><div><button data-contact="${esc(a.leadId)}">Apri scheda</button><button data-delete-step="${esc(a.id)}">Elimina</button></div></article>`
-      ).join("") : '<div class="empty">Nessun appuntamento programmato.</div>';
-      $$('[data-contact]').forEach(b => b.onclick = event => { event.stopPropagation(); openLead(b.dataset.contact); });
-      $$('[data-delete-step]').forEach(b => b.onclick = event => { event.stopPropagation(); cancelAppointment(b.dataset.deleteStep); });
-      $$('[data-appointment-contact]').forEach(card => {
-        card.onclick = () => openLead(card.dataset.appointmentContact);
-        card.onkeydown = event => { if (event.key === "Enter" || event.key === " ") openLead(card.dataset.appointmentContact); };
-      });
+      renderAppointments();
+      renderUrgent();
       renderLeads();
       return true;
     } catch (error) {
@@ -652,6 +648,76 @@ Ci vediamo a bordo! 🚢`;
       refreshButton.disabled = false;
       refreshButton.textContent = "Aggiorna";
     }
+  }
+
+  function renderAppointments() {
+    const today = dashboardRules.romeDay(Date.now());
+    appointments = appointments.filter(a => dashboardRules.appointmentVisible(a));
+    const cards = items => items.length ? items.map(a =>
+      `<article class="appointment" data-appointment-contact="${esc(a.leadId)}" role="button" tabindex="0"><strong>${esc(a.type)} · ${esc(a.contactName)}</strong><small>${esc(formatDate(a.when))}${a.note ? " · "+esc(a.note) : ""}</small><div><button data-contact="${esc(a.leadId)}">Apri scheda</button><button data-delete-step="${esc(a.id)}">Elimina</button></div></article>`
+    ).join("") : '<div class="empty">Nessun appuntamento programmato.</div>';
+    $('#appointments').innerHTML = cards(appointments.filter(a => dashboardRules.romeDay(a.when) === today));
+    $('#futureAppointments').innerHTML = cards(appointments.filter(a => dashboardRules.romeDay(a.when) > today));
+    $('#appointmentCount').textContent = appointments.length;
+    $$('[data-contact]').forEach(b => b.onclick = event => { event.stopPropagation(); openLead(b.dataset.contact); });
+    $$('[data-delete-step]').forEach(b => b.onclick = event => { event.stopPropagation(); cancelAppointment(b.dataset.deleteStep); });
+    $$('[data-appointment-contact]').forEach(card => {
+      card.onclick = () => openLead(card.dataset.appointmentContact);
+      card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openLead(card.dataset.appointmentContact); } };
+    });
+  }
+  function contactHistory(id) { return dashboardRules.ordered(dashboardEvents.filter(e => e.leadId === id)); }
+  function contactAlerts(contact) { return dashboardRules.urgent(contact,contactHistory(contact.id)); }
+  function renderUrgent() {
+    const rows = leads.flatMap(contact => contactAlerts(contact).map(alert => ({contact,alert})))
+      .sort((a,b) => a.alert.startedAt-b.alert.startedAt);
+    $('#urgentContacts').innerHTML = rows.length ? rows.map(({contact,alert}) =>
+      `<article class="appointment urgent-card"><button class="urgent-name" data-urgent-open="${esc(contact.id)}">${esc(contact.name)}</button><p>${esc(alert.reason)}</p><small>Dal ${esc(formatDate(new Date(alert.startedAt)))}</small><button class="report-btn" data-urgent-followup="${esc(contact.id)}" data-phase="${alert.phase}">FOLLOW-UP</button></article>`
+    ).join('') : '<div class="empty">Nessun contatto urgente.</div>';
+    $$('[data-urgent-open]').forEach(b => b.onclick = () => openLead(b.dataset.urgentOpen));
+    $$('[data-urgent-followup]').forEach(b => b.onclick = () => sendUrgentFollowup(b));
+  }
+  async function sendUrgentFollowup(button) {
+    if (messageSaving) return;
+    const contact = leads.find(c => c.id === button.dataset.urgentFollowup);
+    const alert = contact && contactAlerts(contact).find(a => a.phase === button.dataset.phase);
+    if (!alert || !phone(contact.phone)) return toast('Contatto o cellulare non disponibile',true);
+    const message = bootcampMessages.find(m => m.key === 'followup');
+    const iOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const android = /Android/i.test(navigator.userAgent);
+    const popup = !iOS && !android ? window.open('about:blank','_blank') : null;
+    if (!iOS && !android && !popup) return toast('Consenti i popup per aprire WhatsApp',true);
+    if(popup) { popup.opener=null; popup.document.body.textContent='Preparazione follow-up…'; }
+    messageSaving=true;
+    button.disabled=true;
+    try {
+      const configSnap = await db.collection('bootcamps').doc(bootcampId(contact)).get();
+      const config = configSnap.exists ? configSnap.data() : null;
+      if (!config?.time) throw new Error('Configura prima l’orario del Bootcamp nella scheda contatto.');
+      const text = composeBootcampMessage(message.text,messageVariables(contact,config),message.key);
+      const ref = db.collection('events').doc('urgent_'+profile.operatorCode+'_'+encodeURIComponent(contact.id)+'_'+alert.phase);
+      const entry = {leadId:contact.id,operatorCode:profile.operatorCode,operatorName:profile.name,
+        type:message.event,detail:'Follow-up dalla dashboard · '+alert.reason,note:'',origin:'WEBAPP',
+        alertPhase:alert.phase,sourceEventId:alert.sourceEventId,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+      // Evento e chiusura della specifica segnalazione sono lo stesso documento persistente.
+      await ref.set(entry);
+      dashboardEvents.push({...entry,id:ref.id,createdAt:new Date()});
+      if(!leadMessageEvents.has(contact.id)) leadMessageEvents.set(contact.id,new Set());
+      leadMessageEvents.get(contact.id).add(message.event);
+      const recipient='39'+phone(contact.phone);
+      const url=iOS ? 'whatsapp-smb://send?phone='+recipient+'&text='+encodeURIComponent(text)
+        : android ? 'https://wa.me/'+recipient+'?text='+encodeURIComponent(text)
+        : 'whatsapp://send?phone='+recipient+'&text='+encodeURIComponent(text);
+      renderUrgent(); renderLeads();
+      if (popup) popup.location.href=url;
+      else {
+        const fallback=$('#urgentWhatsAppFallback');
+        fallback.href=url; fallback.classList.remove('hidden');
+        window.location.href=url;
+      }
+      toast('Follow-up registrato. Conferma l’invio in WhatsApp.');
+    } catch(error) { popup?.close(); toast(error.message,true); }
+    finally { messageSaving=false; button.disabled=false; }
   }
 
   async function cancelAppointment(stepId) {
@@ -691,9 +757,11 @@ Ci vediamo a bordo! 🚢`;
       return state && typeMatches && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
     });
     $("#resultCount").textContent = `${list.length} di ${leads.length}`;
-    $("#contacts").innerHTML = list.length ? list.map(l =>
-      `<article class="contact"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.region || "")} · ${esc(l.phone || "")}</p><span class="status ${statusClass(l.status)}">${esc(l.status || "Da lavorare")}</span></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`
-    ).join("") : '<div class="empty">Nessun contatto trovato.</div>';
+    $("#contacts").innerHTML = list.length ? list.map(l => {
+      const history = contactHistory(l.id), latest = history[history.length-1];
+      const alerts = contactAlerts(l);
+      return `<article class="contact contact-summary"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.email || '')} · ${esc(l.phone || '')}</p><p>${esc(l.region || '')} · Affiliato: ${esc(l.affiliate || l.affiliato || l.source || '')}</p><span class="status ${statusClass(l.status)}">${esc(l.status || 'Da lavorare')}</span><div class="last-action"><strong>ULTIMA AZIONE</strong><p>${latest ? esc(latest.type)+' · '+esc(formatDate(latest.createdAt)) : 'Nessuna azione registrata'}</p>${alerts.map(a => `<p class="urgent-label">${esc(a.reason)}</p>`).join('')}<details><summary>Timeline completa (${history.length})</summary>${history.length ? '<ol>'+history.map(e => `<li><time>${esc(formatDate(e.createdAt))}</time> · ${esc(e.type)}${e.note || e.detail ? '<p>'+esc(e.note || e.detail)+'</p>' : ''}</li>`).join('')+'</ol>' : '<p>Nessuna attività registrata.</p>'}</details></div></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`;
+    }).join('') : '<div class="empty">Nessun contatto trovato.</div>';
     $$('[data-open]').forEach(b => b.onclick = () => openLead(b.dataset.open));
   }
 
@@ -877,7 +945,10 @@ Ci vediamo a bordo! 🚢`;
   }
   function timeline(events) {
     currentEvents = events;
-    if(current) leadMessageEvents.set(current.id, new Set(events.map(e => String(e.type || "").trim())));
+    if(current) {
+      leadMessageEvents.set(current.id, new Set(events.map(e => String(e.type || "").trim())));
+      dashboardEvents = dashboardEvents.filter(e => e.leadId !== current.id).concat(events.filter(e => !e.deleted).map(e => ({...e,leadId:current.id})));
+    }
     setTimeout(refreshBootcampMessageStates, 0);
     savedEvents = new Set(events.map(e => String(e.type || "").trim()));
     $$('.event').forEach(b => {
@@ -1215,34 +1286,24 @@ ${operatorName} | iconsulentidiviaggio.it`;
       const freshContacts = await db.collection("contacts").where("operatorCode","==",profile.operatorCode).get();
       const visibleIds = new Set(leads.map(c=>c.id));
       const reportLeads = freshContacts.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(c=>visibleIds.has(c.id) && norm(c.contactType) !== "DIRETTO");
+        .filter(c=>visibleIds.has(c.id));
       const ids = new Set(reportLeads.map(contact => contact.id));
       const eventSnap = await db.collection("events").where("operatorCode","==",profile.operatorCode).get();
       const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId) && !e.deleted);
-      const eventTypesByLead = new Map();
-      events.forEach(event => {
-        if (!eventTypesByLead.has(event.leadId)) eventTypesByLead.set(event.leadId, new Set());
-        eventTypesByLead.get(event.leadId).add(String(event.type || "").trim());
-      });
-      const operatorName = String(profile.operatorCode || "").toUpperCase() === "FB" ? "Fabio" : "Stefano";
+      const operatorName = norm(profile.operatorCode) === "FB" ? "Fabio" : "Stefano";
       const summary = reportLeads.map(contact => {
-        const completedEvents = eventTypesByLead.get(contact.id) || new Set();
-        const row = {
-          "LEAD ID":contact.id,
-          "NOME E COGNOME":contact.name,
-          "TELEFONO":contact.phone || "",
-          "EMAIL":contact.email || "",
-          "REGIONE":contact.region || "",
-          "FONTE":contact.source || contact.origin || contact.contactType || "BOOTCAMP",
-          "OPERATORE":operatorName,
-          "DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
-          "STATO":contact.status || "Da lavorare",
-          "PROSSIMO STEP":contact.nextStep || "",
-          "DATA PROSSIMO STEP":formatDate(contact.nextStepAt)
+        const history = dashboardRules.ordered(events.filter(e => e.leadId === contact.id));
+        const latest = history[history.length-1];
+        const urgent = dashboardRules.urgent(contact,history).map(a => a.reason).join(' · ');
+        return {
+          "LEAD ID":contact.id,"NOME":contact.firstName || contact.name || '',"COGNOME":contact.lastName || '',
+          "EMAIL":contact.email || '',"CELLULARE":contact.phone || '',"REGIONE":contact.region || '',
+          "AFFILIATO":contact.affiliate || contact.affiliato || contact.source || '',
+          "PROVENIENZA":contact.contactType || 'BOOTCAMP',"DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
+          "STATO":contact.status || 'Da lavorare',
+          "ULTIMA AZIONE":[latest ? latest.type+' · '+formatDate(latest.createdAt) : 'Nessuna azione',urgent].filter(Boolean).join(' · '),
+          "NOTE CHIAMATA":contact.answers?.['NOTE CHIAMATA'] || ''
         };
-        [...new Set(eventNames.concat(bootcampMessages.map(m => m.event), events.map(e => e.type).filter(Boolean)))].forEach(eventName => { row[eventName] = completedEvents.has(eventName) ? 1 : 0; });
-        row["NOTE CHIAMATA"] = contact.answers?.["NOTE CHIAMATA"] || "";
-        return row;
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "RIEPILOGO");
@@ -1296,8 +1357,28 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#back").onclick = () => { if(messageSaving) return toast("Attendi il salvataggio del messaggio"); $("#leadSheet").classList.add("hidden"); document.body.style.overflow = ""; loadDashboard(); };
     $("#events").innerHTML = eventNames.map(n => `<button class="event" type="button">${n}</button>`).join("");
     $$('[data-group] .chip').forEach(c => c.onclick = e => { e.preventDefault(); [...c.parentElement.children].forEach(x => x.classList.toggle("active", x === c)); });
-    $$('.event').forEach(b => b.onclick = () => {
+    $$('.event').forEach(b => b.onclick = async () => {
+      if (messageSaving) return;
       const type = b.textContent.trim();
+      if (type === "Post Bootcamp 1" || type === "Post Bootcamp 2") {
+        messageSaving = true;
+        $$('.event').forEach(button => button.disabled = true);
+        const removing = savedEvents.has(type);
+        if (removing) b.classList.add("remove-pending");
+        try {
+          const saved = await saveContact(removing ? [] : [type]);
+          if (!saved && removing) b.classList.remove("remove-pending");
+          if (saved) {
+            if (!leadMessageEvents.has(current.id)) leadMessageEvents.set(current.id, new Set());
+            if (removing) leadMessageEvents.get(current.id).delete(type);
+            else leadMessageEvents.get(current.id).add(type);
+          }
+        } finally {
+          messageSaving = false;
+          $$('.event').forEach(button => button.disabled = false);
+        }
+        return;
+      }
       if (savedEvents.has(type)) {
         b.classList.toggle("remove-pending");
         return toast(b.classList.contains("remove-pending") ? "Evento da togliere: premi Aggiorna scheda" : "Rimozione annullata");
@@ -1319,4 +1400,24 @@ ${operatorName} | iconsulentidiviaggio.it`;
   }
 
   initUI();
+  function scheduleDashboardMidnight() {
+    const delay=dashboardRules.nextRomeMidnight()-Date.now()+25;
+    setTimeout(() => {
+      if(profile && !dashboardLoading && !messageSaving) { renderAppointments(); renderUrgent(); renderLeads(); }
+      scheduleDashboardMidnight();
+    },Math.max(25,delay));
+  }
+  scheduleDashboardMidnight();
+  let dashboardClockDay = dashboardRules.romeDay(Date.now());
+  setInterval(() => {
+    if(!profile || dashboardLoading || messageSaving) return;
+    const today = dashboardRules.romeDay(Date.now());
+    if(today !== dashboardClockDay) { dashboardClockDay=today; renderAppointments(); }
+    renderUrgent();
+  },60000);
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden && profile && !dashboardLoading && !messageSaving) {
+      renderAppointments(); renderUrgent(); renderLeads();
+    }
+  });
 })();

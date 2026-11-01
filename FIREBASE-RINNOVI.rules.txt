@@ -1,0 +1,27 @@
+// AGGIUNTA ALLE REGOLE ESISTENTI, NON SOSTITUIRE L'INTERO FILE.
+// Inserire questo blocco DENTRO match /databases/{database}/documents { ... }
+// Le regole correnti di Contatti, Eventi, Bootcamp e utenti devono restare invariate.
+match /consultantRenewals/{renewalId} {
+  function isStefanoRenewals() {
+    return request.auth != null
+      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.operatorCode == 'ST';
+  }
+  function validRenewal() {
+    return request.resource.data.operatorCode == 'ST'
+      && request.resource.data.updatedBy == request.auth.uid
+      && request.resource.data.data is map
+      && request.resource.data.headers is list
+      && request.resource.data.expiration is string
+      && (!('history' in request.resource.data) || request.resource.data.history is list);
+  }
+  allow read: if isStefanoRenewals() && resource.data.operatorCode == 'ST';
+  allow create: if isStefanoRenewals() && validRenewal();
+  allow update: if isStefanoRenewals() && resource.data.operatorCode == 'ST' && validRenewal();
+  allow delete: if false;
+}
+
+// ATTENZIONE: in Firestore le autorizzazioni dei match sovrapposti si sommano.
+// Un match generico che autorizza tutti gli utenti autenticati permetterebbe
+// l'accesso anche a Fabio, nonostante questo blocco. Prima di pubblicare,
+// verificare che eventuali match generici non autorizzino consultantRenewals.
+// Non e' stata letta o modificata la configurazione attuale del progetto.

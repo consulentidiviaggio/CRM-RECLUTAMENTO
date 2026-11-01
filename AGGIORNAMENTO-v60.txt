@@ -1,0 +1,40 @@
+CRM RECLUTAMENTO — VERSIONE 60 — RINNOVI CONSULENTI
+
+PACCHETTO PRONTO, NON PUBBLICATO AUTOMATICAMENTE.
+
+1. FIREBASE: attivazione necessaria
+Aprire Firestore > Regole. Conservare una copia delle regole attuali.
+Aggiungere il blocco di FIREBASE-RINNOVI.rules.txt dentro match /databases/{database}/documents, senza sostituire le altre regole.
+Verificare eventuali match generici: le autorizzazioni si sommano. Un allow per tutti gli utenti autenticati non isola la nuova raccolta. Le regole attuali non sono state accessibili durante l'implementazione: in caso di dubbio condividerle per verifica prima di pubblicare.
+Nel simulatore delle regole: Stefano (UID del profilo con operatorCode ST) deve poter leggere/scrivere consultantRenewals; Fabio (FB) e utente non autenticato devono essere respinti. Nessuna scrittura su contatti reali necessaria.
+
+2. GITHUB
+Caricare nella radice del repository tutti i file applicativi di questo ZIP, sostituendo quelli presenti. I due file nuovi renewals-core.js e renewals-crm.js sono indispensabili.
+Non caricare il file Excel con dati personali nel repository pubblico.
+Non occorrono modifiche Apps Script o deployment Apps Script.
+Attendere la pubblicazione GitHub Pages e aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=60
+
+3. PRIMO CARICAMENTO
+Accedere come Stefano > Menu > Rinnovi consulenti > Carica Excel / CSV.
+Scegliere il file consulenti; selezionare la scadenza 31 dicembre 2026.
+L'anteprima del file fornito deve mostrare 41 consulenti: 14 primi rinnovi a 99 euro e 27 successivi a 49 euro. Confermare Importa consulenti.
+Si importa soltanto la scadenza selezionata; altri mesi possono essere caricati ripetendo l'operazione.
+La raccolta consultantRenewals viene creata dal primo caricamento.
+
+FUNZIONAMENTO
+- Schede con tutti i dati del file, primi rinnovi prima degli altri; ordine alfabetico per cognome e nome dentro ciascun gruppo.
+- Rinnovo inviato apre WhatsApp Web con data e importo dinamici; evento registrato al clic, invio manuale.
+- Usare Edge con il profilo WhatsApp Business desiderato gia' collegato. L'app non sceglie il numero WhatsApp e non invia automaticamente.
+- Un secondo clic sullo stato attivo annulla quella registrazione e ripristina lo stato precedente. Solo lo stato attivo e' evidenziato; le azioni annullate restano nella timeline.
+- Premium e Advance escludono dalla lista operativa: filtro Esclusi per recuperarli, quindi secondo clic sullo stato attivo.
+- Urgenti dopo 15 giorni dal messaggio senza ulteriori cambi di stato attivi. Annullamenti rispettati.
+- Aggiorna rilegge da Firebase. Non sono stati introdotti timer di lettura: su un altro dispositivo premere Aggiorna per vedere le modifiche.
+- Riepilogo Excel: tutti i dati, contributo, ultimo stato, urgenza, inclusi Premium/Advance; secondo foglio con timeline completa.
+- Reimportare lo stesso file aggiorna i dati ma conserva stati e timeline. Identita' basata su email + scadenza, oppure cellulare/nome se manca email. Cambiare email o scadenza crea una nuova identita': non correggerle tramite reimportazione per evitare duplicati.
+- Facoltativo: Importa backup simulazione importa il backup JSON della prova conservando le attivita'. Non caricare prima la stessa anagrafica con email diverse.
+- Stato originario gia' presente nel file resta il punto di partenza: non e' un clic annullabile della timeline.
+
+VERIFICHE
+Test locali di logica e integrazione simulata: importi, date, soglia 15 giorni, annullamento di tutti gli stati, recupero Premium/Advance, controllo ST/FB, transazioni, apertura WhatsApp e refresh. 39 verifiche della dashboard esistente superate. Controllati i 41 record della scadenza richiesta e gli ID dei controlli HTML.
+Da verificare dopo attivazione: regole reali Firebase, salvataggio tra PC/iPhone, popup e sessione WhatsApp del profilo Edge. Nessun messaggio inviato, nessun dato reale modificato durante le verifiche.

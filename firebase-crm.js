@@ -128,6 +128,8 @@
     return String(profile?.operatorCode || "").toUpperCase() === "ST";
   }
   function hideWorkAreas() {
+    $("#renewalsApp").classList.add("hidden");
+    window.CRM_RENEWALS?.close();
     $("#workspaceChoice").classList.add("hidden");
     $("#operatorApp").classList.add("hidden");
     $("#eventsApp").classList.add("hidden");
@@ -1410,6 +1412,12 @@ ${operatorName} | iconsulentidiviaggio.it`;
       hideWorkAreas();
       $("#operatorApp").classList.remove("hidden");
       await loadDashboard();
+    };
+    $("#openRenewalsArea").onclick = async () => {
+      if (!isStefano()) return;
+      hideWorkAreas();
+      $("#renewalsApp").classList.remove("hidden");
+      await window.CRM_RENEWALS.open({profile, auth, db, onBack: openWorkspaceChoice});
     };
     $("#openEventsArea").onclick = async () => {
       hideWorkAreas();

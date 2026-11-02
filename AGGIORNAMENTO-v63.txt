@@ -1,0 +1,13 @@
+CRM RECLUTAMENTO — VERSIONE 63
+
+Correzione salvataggio scheda Rinnovi: confronto dei dati indipendente dall'ordine dei campi restituiti da Firebase. Il controllo dei conflitti fra dispositivi resta attivo.
+Aggiunto avviso direttamente nel pannello di modifica per salvataggio e possibili errori. Validazione numerica dei decimali resa compatibile con i valori importati.
+Stati, timeline e importi personalizzati conservati.
+
+Caricare tutti i file applicativi dello ZIP su GitHub sostituendo quelli presenti. Attendere pubblicazione e aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=63
+Nessuna modifica aggiuntiva Firebase o Apps Script.
+
+Salva scheda aggiorna Firebase e la scheda del CRM. Non puo' sovrascrivere il file Excel originale sul computer. Riepilogo Excel scarica un nuovo file con i dati aggiornati.
+Test locali superati anche simulando campi Firebase in ordine diverso, modifica importo e creazione nuova scadenza, oltre alle regressioni Eventi e dashboard.
+Se compare un errore reale di autorizzazione o connessione, il testo e' visibile accanto al modulo: non indica un salvataggio riuscito.

@@ -8,7 +8,7 @@ let ctx=null,documents=[],selected='',busy=false,generation=0,pending=null;
 const headersDefault=['Nome','Cognome','Email','Cellulare','Rinnovi','Stato lavorazione','Data scadenza','Fatturato annuale','Fatturato totale'];
 function access(){if(!ctx||ctx.profile.operatorCode!=='ST'||ctx.auth.currentUser?.uid!==ctx.profile.uid)throw Error('Accesso ai rinnovi riservato a Stefano.');}
 function notice(text,error=false){$('#renewalNotice').textContent=text;$('#renewalNotice').classList.toggle('renewal-error',error);}
-function fail(error){notice(error.code==='permission-denied'?'Accesso Firebase ai rinnovi non autorizzato. Pubblica la regola dedicata inclusa nell’aggiornamento.':error.message,true);}
+function fail(error){if(!$('#renewalEditor').hidden){$('#renewalEditorStatus').textContent=error.message;$('#renewalEditorStatus').classList.toggle('renewal-error',true);}notice(error.code==='permission-denied'?'Accesso Firebase ai rinnovi non autorizzato. Pubblica la regola dedicata inclusa nell’aggiornamento.':error.message,true);}
 function collection(){access();return ctx.db.collection('consultantRenewals');}
 function controls(){root.querySelectorAll('button,input,select').forEach(b=>b.disabled=busy||b.dataset.intrinsicDisabled==='true');}
 function scoped(includeExcluded=false){return documents.filter(d=>(selected==='all'||d.expiration===selected)&&(includeExcluded||!core.excluded(d.data,d.history))).sort((a,b)=>core.compare(a.data,b.data));}
@@ -81,13 +81,14 @@ async function commitImport(){
 }
 function report(){access();if(!window.XLSX)return notice('Libreria Excel non disponibile.',true);const list=scoped(true),rows=list.map(d=>{const e=core.active(d.history).at(-1);return {...d.data,Rinnovi:core.count(d.data)===0?'Primo rinnovo':core.count(d.data),'Contributo rinnovo €':core.amount(d.data),'Ultimo stato':core.status(d.data,d.history),'Escluso dalla lista rinnovi':core.excluded(d.data,d.history)?'Sì':'No','Ultima attività':e?.type||'','Data ultima attività':e?stamp(e.at):'','Urgente rinnovo':core.urgent(d.data,d.history)?'Sì':'No'};});const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'RIEPILOGO');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(list.flatMap(d=>(d.history||[]).map(e=>({Nome:core.val(d.data,'Nome'),Cognome:core.val(d.data,'Cognome'),Email:core.val(d.data,'Email'),Scadenza:d.expiration,Evento:e.type,Data:stamp(e.at),Annullato:e.cancelled?'Sì':'No','Data annullamento':e.cancelledAt?stamp(e.cancelledAt):'','Messaggio preparato':e.text||''})))),'TIMELINE');XLSX.writeFile(wb,'Riepilogo-rinnovi-'+selected+'.xlsx');}
 
+function rowSignature(row){return JSON.stringify(Object.keys(row).sort().map(k=>[k,row[k]]));}
 let editing=null;
 function openEditor(id,newCycle=false){
  if(busy)return;access();const doc=documents.find(d=>d.id===id);if(!doc)return;
- const headers=[...new Set([...(doc.headers||headersDefault),'Importo rinnovo richiesto'])];editing={id,newCycle,headers,original:JSON.stringify(doc.data)};
+ const headers=[...new Set([...(doc.headers||headersDefault),'Importo rinnovo richiesto'])];editing={id,newCycle,headers,original:rowSignature(doc.data)};$('#renewalEditorStatus').textContent='';
  $('#renewalEditorTitle').textContent=newCycle?'Aggiungi una nuova scadenza':'Modifica scheda consulente';
  $('#renewalEditorHelp').textContent=newCycle?'Nuovo ciclo con stato iniziale e timeline separati. Le scadenze precedenti restano in archivio.':'Le modifiche conservano stati e timeline. I messaggi già preparati restano nello storico originale.';
- $('#renewalEditorFields').innerHTML=headers.map((h,i)=>{const n=core.norm(h),date=n==='DATA SCADENZA',numeric=n==='RINNOVI'||(n.includes('FATTURATO')||n==='IMPORTO RINNOVO RICHIESTO');let v=core.val(doc.data,h);if(n==='IMPORTO RINNOVO RICHIESTO')v=newCycle?'':core.val(doc.data,h);if(date)v=newCycle?'':core.day(v);if(newCycle&&n==='RINNOVI')v=core.count(doc.data)+1;if(newCycle&&n==='STATO LAVORAZIONE')v='NESSUNA';return `<label>${esc(h)}<input data-renewal-field="${i}" type="${date?'date':numeric?'number':'text'}" ${numeric?'min="0" step="'+(n==='RINNOVI'?'1':'0.01')+'"':''} value="${esc(v)}"></label>`;}).join('');
+ $('#renewalEditorFields').innerHTML=headers.map((h,i)=>{const n=core.norm(h),date=n==='DATA SCADENZA',numeric=n==='RINNOVI'||(n.includes('FATTURATO')||n==='IMPORTO RINNOVO RICHIESTO');let v=core.val(doc.data,h);if(n==='IMPORTO RINNOVO RICHIESTO')v=newCycle?'':core.val(doc.data,h);if(date)v=newCycle?'':core.day(v);if(newCycle&&n==='RINNOVI')v=core.count(doc.data)+1;if(newCycle&&n==='STATO LAVORAZIONE')v='NESSUNA';return `<label>${esc(h)}<input data-renewal-field="${i}" type="${date?'date':numeric?'number':'text'}" ${numeric?'min="0" step="'+(n==='RINNOVI'?'1':'any')+'"':''} value="${esc(v)}"></label>`;}).join('');
  $('#renewalEditor').hidden=false;$('#renewalEditor').scrollIntoView?.({behavior:'smooth'});
 }
 async function saveEditor(event){
@@ -97,13 +98,13 @@ async function saveEditor(event){
  try{core.validateRow(row);}catch(e){fail(e);return;}
  const k=core.key(row),duplicate=documents.find(d=>d.id!==original.id&&(core.key(d.data)===k||(d.identityAliases||[]).includes(k)));
  if(duplicate||editing.newCycle&&k===core.key(original.data))return notice('Esiste già una scheda per questo consulente e questa scadenza.',true);
- busy=true;controls();const token=generation,mode=editing.newCycle;
+ busy=true;controls();$('#renewalEditorStatus').textContent='Salvataggio in corso…';const token=generation,mode=editing.newCycle;
  try{
   const id=mode?await documentId(row):original.id,ref=collection().doc(id);
   const saved=await ctx.db.runTransaction(async tx=>{
    access();const snap=await tx.get(ref),current=snap.exists?snap.data():null;
    if(mode&&current)throw Error('Questa scadenza esiste già. Premi Aggiorna.');
-   if(!mode&&(!current||current.operatorCode!=='ST'||JSON.stringify(current.data)!==editing.original))throw Error('Scheda modificata da un altro dispositivo. Chiudi la modifica, premi Aggiorna e riprova.');
+   if(!mode&&(!current||current.operatorCode!=='ST'||rowSignature(current.data)!==editing.original))throw Error('Scheda modificata da un altro dispositivo. Chiudi la modifica, premi Aggiorna e riprova.');
    const now=new Date().toISOString(),history=mode?[]:[...(current.history||[])];
    history.push({type:mode?'Nuova scadenza creata':'Scheda modificata',kind:'edit',at:now,changes:headers.filter(h=>original.data[h]!==row[h]).map(h=>({field:h,before:original.data[h]??'',after:row[h]}))});
    const aliases=mode?[]:[...new Set([...(current.identityAliases||[]),core.key(current.data)])];
@@ -116,6 +117,7 @@ async function saveEditor(event){
  }catch(e){if(token===generation)fail(e);}finally{if(token===generation){busy=false;controls();}}
 }
 $('#renewalEditorForm').onsubmit=saveEditor;
+$('#renewalEditorForm').addEventListener('invalid',event=>{const input=event.target;$('#renewalEditorStatus').textContent='Controlla il campo '+(input.closest('label')?.textContent||'selezionato')+': '+input.validationMessage;$('#renewalEditorStatus').classList.toggle('renewal-error',true);},true);
 $('#renewalEditorCancel').onclick=()=>{editing=null;$('#renewalEditor').hidden=true;};
 
 $('#renewalCards').addEventListener('click',event=>{const edit=event.target.closest('[data-renewal-edit]'),cycle=event.target.closest('[data-renewal-cycle]');if(edit||cycle){openEditor((edit||cycle).dataset[edit?'renewalEdit':'renewalCycle'],!!cycle);return;}const b=event.target.closest('[data-renewal-action]');if(b)act(b.dataset.renewalId,b.dataset.renewalAction);});

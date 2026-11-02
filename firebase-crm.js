@@ -206,6 +206,7 @@
         <div>${details}</div>
         <div class="participant-controls">
           ${roleChoice}${whatsapp}
+          <div class="event-message-status"><button type="button" data-event-message-sent aria-pressed="${person.messageSent === true}" class="${person.messageSent === true ? 'active' : ''}">Messaggio inviato${person.messageSent === true ? ' ✓' : ''}</button></div>
           <div class="attendance-buttons">
             <button type="button" class="present ${status === "PRESENTE" ? "active" : ""}" data-attendance="Presente">Presente</button>
             <button type="button" class="absent ${status === "ASSENTE" ? "active" : ""}" data-attendance="Assente">Assente</button>
@@ -214,6 +215,7 @@
       </article>`;
     }).join("");
     $$("[data-attendance]").forEach(button => button.onclick = () => saveAttendance(button));
+    $$("[data-event-message-sent]").forEach(button => button.onclick = () => toggleEventMessageSent(button));
     $$("[data-role]").forEach(button => button.onclick = () => saveParticipantRole(button));
     $$("[data-event-whatsapp]").forEach(button => button.onclick = () => openEventWhatsApp(button));
   }
@@ -245,6 +247,36 @@
       toast("Consulente aggiunto all’evento ✓");
     } catch (error) { toast(error.message, true); }
     finally { button.disabled = false; button.textContent = "Salva consulente"; }
+  }
+
+  let eventMessageSaving = false;
+  async function toggleEventMessageSent(button) {
+    if (eventMessageSaving || !isStefano()) return;
+    const card = button.closest('[data-participant-id]');
+    const person = shipParticipants.find(item => item.id === card?.dataset.participantId);
+    if (!person) return;
+    const desired = person.messageSent !== true;
+    eventMessageSaving = true;
+    $$('[data-event-message-sent]').forEach(b => b.disabled = true);
+    try {
+      const ref = db.collection('shipParticipants').doc(person.id);
+      await db.runTransaction(async transaction => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists) throw Error('Partecipante non trovato. Ricarica gli eventi.');
+        transaction.update(ref, {
+          messageSent: desired,
+          messageSentUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          messageSentUpdatedBy: profile.name
+        });
+      });
+      person.messageSent = desired;
+      if (selectedShipEvent === person.eventName) openShipEvent(selectedShipEvent);
+      toast(desired ? 'Messaggio segnato come inviato ✓' : 'Segnalazione messaggio inviato rimossa');
+    } catch (error) { toast(error.message, true); }
+    finally {
+      eventMessageSaving = false;
+      $$('[data-event-message-sent]').forEach(b => b.disabled = false);
+    }
   }
 
   async function saveParticipantRole(button) {
@@ -543,7 +575,8 @@ Ci vediamo a bordo! 🚢`;
       "COGNOME CONSULENTE":person.consultantSurname || "",
       "TIPO":isConsultant ? "Consulente" : "Partecipante",
       "VALORE":shipPersonValue(person, people),
-      "PRESENZA":person.attendanceStatus || "Da registrare"
+      "PRESENZA":person.attendanceStatus || "Da registrare",
+      "MESSAGGIO INVIATO":person.messageSent === true ? 1 : 0
       });
     });
     const workbook = XLSX.utils.book_new();

@@ -982,6 +982,8 @@
     
 #renewalsApp main{max-width:1200px;margin:auto;padding:24px}#renewalsApp .renewal-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:20px 0}#renewalsApp button,#renewalsApp .renewal-upload{border:1px solid #ddd;border-radius:12px;padding:11px 16px;background:white;color:#171717;font:inherit;cursor:pointer}#renewalsApp .renewal-upload{background:#fc7c17;color:white;border-color:#fc7c17}#renewalsApp .renewal-upload.secondary{background:white;color:#555}#renewalsApp input[type=file]{display:block;max-width:220px;font-size:11px;margin-top:6px}#renewalsApp input[type=search]{flex:1;min-width:200px}#renewalsApp select,#renewalsApp input[type=search]{padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}#renewalsApp .renewal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}#renewalsApp .renewal-stats>div{border:1px solid #ddd;border-radius:16px;padding:20px}#renewalsApp .renewal-stats strong{display:block;font-size:28px}#renewalsApp .renewal-stats span{font-size:13px;color:#666}#renewalsApp .renewal-card{border:1px solid #ddd;border-radius:20px;padding:24px;margin:18px 0;background:white}#renewalsApp .renewal-card-top{display:flex;justify-content:space-between;gap:12px}#renewalsApp h2{font-size:22px;margin:5px 0 15px}#renewalsApp .renewal-price{font-size:26px;font-weight:700;color:#df6506;text-align:right}#renewalsApp .renewal-price small{display:block;font-size:11px;font-weight:400;color:#666}#renewalsApp dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}#renewalsApp dt{font-size:12px;color:#666}#renewalsApp dd{margin:4px 0;font-weight:500;overflow-wrap:anywhere}#renewalsApp .renewal-state{display:flex;justify-content:space-between;margin:20px 0}#renewalsApp .renewal-state>span{background:#f1f1f1;border-radius:20px;padding:5px 12px}#renewalsApp .renewal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}#renewalsApp .renewal-actions button[aria-pressed=true]{background:#167346;color:white;border-color:#167346}#renewalsApp .renewal-actions button:disabled{opacity:.5;cursor:wait}#renewalsApp .renewal-help{font-size:12px;color:#666;line-height:1.6}#renewalsApp pre{white-space:pre-wrap;font:inherit;font-size:13px;line-height:1.7}#renewalsApp summary{cursor:pointer;font-weight:600}#renewalsApp .renewal-timeline{border-top:1px solid #eee;margin-top:20px;padding-top:12px}#renewalsApp .renewal-timeline h3{font-size:14px}#renewalsApp .renewal-timeline small{display:block;color:#666}#renewalsApp .renewal-timeline li{margin:12px 0}#renewalsApp .renewal-cancelled{color:#888}#renewalsApp .renewal-cancelled strong{text-decoration:line-through}#renewalsApp .renewal-error{color:#b12626}#renewalsApp .renewal-urgent,#renewalsApp .renewal-import{padding:18px;border:1px solid #ddd;border-radius:14px;margin:18px 0}#renewalsApp #renewalUrgents button{display:block;margin:10px 0;text-align:left;width:100%}#renewalsApp #renewalUrgents span{display:block;font-size:12px}@media(max-width:700px){#renewalsApp dl{grid-template-columns:repeat(2,minmax(0,1fr))}#renewalsApp .renewal-stats{grid-template-columns:repeat(2,1fr)}#renewalsApp .renewal-card{padding:16px}#renewalsApp .operator>span{display:none}}
 
+#renewalsApp #renewalEditorFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}#renewalsApp #renewalEditorFields label{display:flex;flex-direction:column;gap:6px;font-size:13px}#renewalsApp #renewalEditorFields input{padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}
+.event-message-status{margin:10px 0}.event-message-status button{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 16px;color:#333;font:inherit;cursor:pointer}.event-message-status button.active{background:#187347;border-color:#187347;color:#fff}.event-message-status button:disabled{opacity:.55;cursor:wait}
 </style>
   <style>.event-card.event-started {border-left:5px solid #168a45;}</style>
 </head>
@@ -1066,7 +1068,7 @@
       <section class="renewal-stats"><div><strong id="renewalTotal">0</strong><span>Consulenti in lista</span></div><div><strong id="renewalFirst">0</strong><span>Primo rinnovo · 99€</span></div><div><strong id="renewalRenewed">0</strong><span>Rinnovati</span></div><div><strong id="renewalUrgentCount">0</strong><span>Urgenti</span></div></section>
       <details class="renewal-urgent"><summary>URGENTI RINNOVI · nessun cambio di stato da 15 giorni</summary><div id="renewalUrgents"></div></details>
       <div class="renewal-toolbar"><input id="renewalSearch" type="search" placeholder="Cerca nome, cognome, email o cellulare" aria-label="Cerca consulenti"><select id="renewalExpiry" aria-label="Scadenza"></select><select id="renewalFilter" aria-label="Filtro stato"><option value="">Tutti in lista</option>Da contattare</option>Rinnovo inviato</option>Non rinnovato dalla sede</option>Non vuole rinnovare</option>Rinnovato</option><option>Urgenti</option><option value="excluded">Esclusi · Premium / Advance</option></select></div>
-      <p id="renewalResultCount"></p><section id="renewalCards"></section></main>
+      <section id="renewalEditor" hidden class="renewal-import"><h2 id="renewalEditorTitle"></h2><p id="renewalEditorHelp"></p><form id="renewalEditorForm"><div id="renewalEditorFields"></div><div class="renewal-toolbar"><button type="submit">Salva scheda</button><button type="button" id="renewalEditorCancel">Annulla</button></div></form></section><p id="renewalResultCount"></p><section id="renewalCards"></section></main>
     </div>
     <div class="app hidden" id="operatorApp">
       <header>
@@ -1911,11 +1913,11 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="bootcamp-messages.js?v=60"></script>
-    <script src="crm-dashboard.js?v=60"></script>
-    <script src="renewals-core.js?v=60"></script>
-    <script src="renewals-crm.js?v=60"></script>
-    <script src="firebase-crm.js?v=60"></script>
-  <script src="pwa.js?v=60"></script>
+    <script src="bootcamp-messages.js?v=62"></script>
+    <script src="crm-dashboard.js?v=62"></script>
+    <script src="renewals-core.js?v=62"></script>
+    <script src="renewals-crm.js?v=62"></script>
+    <script src="firebase-crm.js?v=62"></script>
+  <script src="pwa.js?v=62"></script>
   </body>
 </html>

@@ -13,10 +13,10 @@ function calendar(y,m,d){const date=new Date(Date.UTC(y,m-1,d,12));return date.g
 function val(row,key){const k=Object.keys(row).find(k=>norm(k)===norm(key));return row[k]??'';}
 function key(row){return [String(val(row,'Email')).trim().toLowerCase()||String(val(row,'Cellulare')).replace(/\D/g,'')||norm(val(row,'Nome')+' '+val(row,'Cognome')),day(val(row,'Data scadenza'))].join('|');}
 function count(row){const v=val(row,'Rinnovi');return v!==''&&Number.isInteger(Number(v))&&Number(v)>=0?Number(v):null;}
-const amount=row=>count(row)===null?null:count(row)===0?99:49;
+const amount=row=>val(row,'Importo rinnovo richiesto')!==''?Number(val(row,'Importo rinnovo richiesto')):count(row)===null?null:count(row)===0?99:49;
 const active=events=>(events||[]).filter(e=>!e.cancelled);
 function initial(row){const s=norm(val(row,'Stato lavorazione'));return ['RINNOVOPAGATO','RINNOVATO'].includes(s)?'Rinnovato':s==='NESSUNA'||!s?'Da contattare':String(val(row,'Stato lavorazione'));}
-const status=(row,events)=>active(events).at(-1)?.type||initial(row);
+const status=(row,events)=>active(events).filter(e=>e.kind!=='edit').at(-1)?.type||initial(row);
 const excluded=(row,events)=>['Premium','Advance'].includes(status(row,events));
 function urgent(row,events,now=Date.now()){if(excluded(row,events))return false;const e=active(events);let i=-1;for(let j=e.length-1;j>=0;j--)if(e[j].kind==='message'){i=j;break;}return i>=0&&!e.slice(i+1).some(x=>x.kind==='status')&&now-Date.parse(e[i].at)>=15*86400000;}
 function compare(a,b){return Number(count(b)===0)-Number(count(a)===0)||String(val(a,'Cognome')).trim().localeCompare(String(val(b,'Cognome')).trim(),'it',{sensitivity:'base'})||String(val(a,'Nome')).trim().localeCompare(String(val(b,'Nome')).trim(),'it',{sensitivity:'base'});}
@@ -39,10 +39,10 @@ const allowed=['Rinnovo inviato','Non rinnovato dalla sede','Non vuole rinnovare
 function transition(row,history,type,kind,at=new Date().toISOString()){
  if(!allowed.includes(type))throw Error('Stato rinnovo non valido');
  const next=(history||[]).map(e=>({...e}));
- if(status(row,next)===type){const latest=active(next).at(-1);if(!latest)throw Error('Lo stato proviene dal file sorgente: non esiste un’azione da annullare.');latest.cancelled=true;latest.cancelledAt=at;return {history:next,cancelled:true};}
+ if(status(row,next)===type){const latest=active(next).filter(e=>e.kind!=='edit').at(-1);if(!latest)throw Error('Lo stato proviene dal file sorgente: non esiste un’azione da annullare.');latest.cancelled=true;latest.cancelledAt=at;return {history:next,cancelled:true};}
  const event={type,kind,at};if(kind==='message')event.text=message(row);next.push(event);return {history:next,cancelled:false};
 }
-function validateRow(row){if(!day(val(row,'Data scadenza')))throw Error('Data scadenza non valida');if(!String(val(row,'Nome')).trim()||!String(val(row,'Cognome')).trim())throw Error('Nome o cognome mancante');if(!String(val(row,'Email')).trim()&&!phone(row))throw Error('Email e cellulare mancanti o non validi');if(count(row)===null)throw Error('Numero rinnovi non valido');}
+function validateRow(row){if(!day(val(row,'Data scadenza')))throw Error('Data scadenza non valida');if(!String(val(row,'Nome')).trim()||!String(val(row,'Cognome')).trim())throw Error('Nome o cognome mancante');if(!String(val(row,'Email')).trim()&&!phone(row))throw Error('Email e cellulare mancanti o non validi');if(val(row,'Importo rinnovo richiesto')!==''&&(!Number.isFinite(amount(row))||amount(row)<0))throw Error('Importo rinnovo non valido');if(count(row)===null)throw Error('Numero rinnovi non valido');}
 const api={norm,day,val,key,count,amount,active,initial,status,excluded,urgent,compare,formatDate,message,phone,transition,validateRow,allowed};
 if(typeof module!=='undefined')module.exports=api;else root.CRM_RENEWALS_CORE=api;
 })(typeof window!=='undefined'?window:globalThis);

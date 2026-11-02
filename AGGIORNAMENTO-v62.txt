@@ -1,0 +1,13 @@
+CRM RECLUTAMENTO — VERSIONE 62
+
+Nelle schede dei partecipanti agli eventi aggiunto il pulsante Messaggio inviato.
+Primo clic: salvataggio su Firebase e pulsante verde. Secondo clic: rimozione del flag e pulsante neutro. La presenza Presente/Assente resta indipendente.
+Il pulsante e' una conferma manuale: non apre WhatsApp e non invia messaggi.
+Colonna MESSAGGIO INVIATO nel riepilogo Excel eventi: 1 oppure 0.
+Se il salvataggio fallisce, il flag non viene cambiato.
+
+Caricare tutti i file applicativi del pacchetto nella radice GitHub, sostituendo quelli presenti. Attendere la pubblicazione e aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=62
+Nessuna nuova modifica alle regole Firebase o ad Apps Script: si usano i permessi eventi esistenti.
+Include tutte le modifiche Rinnovi della versione 61.
+Test locali superati per attivazione/annullamento, gestione errori e accesso Stefano; regressioni Rinnovi e 39 controlli dashboard superati. Verificare su Firebase reale dopo pubblicazione.

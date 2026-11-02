@@ -1,0 +1,15 @@
+CRM RECLUTAMENTO — VERSIONE 61
+
+RINNOVI: MODIFICA SCHEDA E PIU' SCADENZE
+Su ciascuna scheda: Modifica scheda per correggere tutti i dati del file, inclusi scadenza, numero rinnovi e Importo rinnovo richiesto. Importo vuoto = calcolo automatico (99 euro primo rinnovo, 49 successivi). Importo personalizzato usato in scheda, WhatsApp e riepilogo Excel.
+La modifica conserva stati e timeline; i cambiamenti sono registrati nella timeline, senza generare o chiudere urgenze. I messaggi gia' preparati conservano il testo originale.
+Aggiungi scadenza crea un nuovo ciclo per lo stesso consulente con data da scegliere, rinnovi incrementati (modificabili), stato iniziale e timeline separati. I cicli precedenti restano disponibili.
+Filtro Tutte le scadenze oppure singola data. L'importazione Excel permette anche Tutte le scadenze del file. Il riepilogo Excel segue la selezione delle scadenze e comprende anche Premium/Advance.
+Le correzioni manuali conservano l'identificativo Firebase. Reimportare riconosce anche l'identita' precedente per evitare il duplicato; i dati del file tornano a prevalere sui campi anagrafici modificati. L'importo personalizzato viene mantenuto se il file non specifica Importo rinnovo richiesto. Prima di reimportare aggiornare anche il file sorgente se si vogliono mantenere le correzioni anagrafiche.
+
+INSTALLAZIONE
+Caricare su GitHub tutti i file applicativi di questo ZIP sostituendo quelli presenti; attendere la pubblicazione.
+Aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=61
+Se le regole Rinnovi della versione 60 sono gia' pubblicate, non occorre modificarle. In caso contrario seguire AGGIORNAMENTO-v60.txt.
+Nessun intervento Apps Script. Nessun dato personale contenuto nel pacchetto.
+Test locali superati per modifica importo, conservazione stato, nuovo ciclo separato, annullamenti, importazione, Excel e dashboard esistente. Verifica finale sul progetto Firebase e sul dispositivo dopo pubblicazione.

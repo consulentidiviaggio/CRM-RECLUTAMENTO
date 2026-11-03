@@ -119,6 +119,7 @@
     return profile;
   }
   function applyOperator(name) {
+    $("#openBootcampImport").hidden = !(profile?.operatorCode === "ST" && profile?.canImportBootcamp === true);
     $("#operatorLabel").textContent = "Operatore " + name;
     $("#operatorAvatar").textContent = name.slice(0, 2).toUpperCase();
     $("#operatorGreeting").textContent = "Buongiorno, " + name;
@@ -625,6 +626,7 @@ Ci vediamo a bordo! 🚢`;
   }
 
   let dashboardLoading = false;
+  let bootcampEditionChoice = "";
   async function loadDashboard() {
     if(dashboardLoading) return false;
     dashboardLoading = true;
@@ -635,14 +637,26 @@ Ci vediamo a bordo! 🚢`;
       const code = profile.operatorCode;
       const contactSnap = await db.collection("contacts").where("operatorCode", "==", code).get();
       const all = contactSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-      let latest = "";
-      all.forEach(c => { const k = dayKey(c.bootcampDate); if (k > latest) latest = k; });
-      leads = all.filter(c => norm(c.contactType) === "DIRETTO" || !latest || dayKey(c.bootcampDate) === latest).map(c => ({
+      let enrollments = [];
+      try {
+        const enrollmentSnap = await db.collection('bootcampEnrollments').where('operatorCode','==',code).get();
+        enrollments = enrollmentSnap.docs.map(d => d.data());
+      } catch (error) { if (error.code !== 'permission-denied') throw error; }
+      const editions = [...new Set(all.filter(c => norm(c.contactType)!=='DIRETTO').map(c => dayKey(c.bootcampDate)).concat(enrollments.map(e => e.bootcampId)).filter(Boolean))].sort();
+      if(!editions.includes(bootcampEditionChoice)) bootcampEditionChoice=editions.at(-1)||'';
+      const latest=bootcampEditionChoice;
+      $('#bootcampEditionSelect').innerHTML=editions.map(d=>`<option value="${esc(d)}">Bootcamp ${esc(formatDate(new Date(d+'T12:00:00'),false))}</option>`).join('');
+      $('#bootcampEditionSelect').value=latest;
+      const registeredIds=new Set(enrollments.filter(e=>e.bootcampId===latest).map(e=>e.contactId));
+      leads = all.filter(c => norm(c.contactType) === "DIRETTO" || !latest || dayKey(c.bootcampDate) === latest || registeredIds.has(c.id)).map(c => ({
+        legacyBootcampDate:c.bootcampDate,
+        selectedBootcampId:(registeredIds.has(c.id)||norm(c.contactType)!=="DIRETTO")?latest:"",
         ...c,
-        contactType: norm(c.contactType) === "DIRETTO" ? "DIRETTO" : "BOOTCAMP",
+        ...((registeredIds.has(c.id)||norm(c.contactType)!=='DIRETTO')&&latest?{bootcampDate:new Date(latest+'T12:00:00')}:{}),
+        contactType: registeredIds.has(c.id) ? "BOOTCAMP" : norm(c.contactType) === "DIRETTO" ? "DIRETTO" : "BOOTCAMP",
         name: c.name || `${c.firstName || ""} ${c.lastName || ""}`.trim(),
         dateLabel: formatDate(c.importedAt || c.registrationDate),
-        bootcampLabel: norm(c.contactType) === "DIRETTO" ? "Contatto diretto" : (c.bootcampDate ? "Bootcamp " + formatDate(c.bootcampDate, false) : "Bootcamp")
+        bootcampLabel: norm(c.contactType) === "DIRETTO" && !registeredIds.has(c.id) ? "Contatto diretto" : (latest ? "Bootcamp " + formatDate(new Date(latest+"T12:00:00"), false) : "Bootcamp")
       })).sort((a,b) => {
         if (statusClass(a.status) !== statusClass(b.status)) return statusClass(a.status) === "todo" ? -1 : 1;
         return (jsDate(b.updatedAt)?.getTime() || jsDate(b.registrationDate)?.getTime() || 0) -
@@ -733,7 +747,7 @@ Ci vediamo a bordo! 🚢`;
       if (!config?.time) throw new Error('Configura prima l’orario del Bootcamp nella scheda contatto.');
       const text = composeBootcampMessage(message.text,messageVariables(contact,config),message.key);
       const ref = db.collection('events').doc('urgent_'+profile.operatorCode+'_'+encodeURIComponent(contact.id)+'_'+alert.phase);
-      const entry = {leadId:contact.id,operatorCode:profile.operatorCode,operatorName:profile.name,
+      const entry = {bootcampId:bootcampId(contact),leadId:contact.id,operatorCode:profile.operatorCode,operatorName:profile.name,
         type:message.event,detail:'Follow-up dalla dashboard · '+alert.reason,note:'',origin:'WEBAPP',
         alertPhase:alert.phase,sourceEventId:alert.sourceEventId,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
       // Evento e chiusura della specifica segnalazione sono lo stesso documento persistente.
@@ -1035,6 +1049,7 @@ Ci vediamo a bordo! 🚢`;
       const snap = await db.collection("contacts").doc(current.id).get();
       const data = snap.data() || {};
       current = { ...current, ...data };
+      if(current.selectedBootcampId) { current.bootcampDate=new Date(current.selectedBootcampId+"T12:00:00"); current.contactType="BOOTCAMP"; }
       const answers = data.answers || {};
       $$('[data-group]').forEach(g => [...g.children].forEach(c =>
         c.classList.toggle("active", c.textContent === String(answers[g.dataset.group] || ""))
@@ -1068,7 +1083,7 @@ Ci vediamo a bordo! 🚢`;
       if (saved) b.classList.remove("pending");
     });
     $("#timeline").innerHTML = events.length ? events.map(e =>
-      `<div class="timeline-item"><div class="dot"></div><div><strong>${esc(e.type)}</strong><small>${esc(formatDate(e.createdAt))} · ${esc(e.operatorName || profile.name)}${e.detail ? " · "+esc(e.detail) : ""}</small></div></div>`
+      `<div class="timeline-item"><div class="dot"></div><div><strong>${esc(e.type)}</strong><small>${esc(formatDate(e.createdAt))} · ${esc(e.operatorName || profile.name)}${e.bootcampId ? " · Bootcamp "+esc(e.bootcampId) : ""}${e.detail ? " · "+esc(e.detail) : ""}</small></div></div>`
     ).join("") : '<div class="empty">Nessun evento registrato.</div>';
   }
 
@@ -1102,7 +1117,7 @@ Ci vediamo a bordo! 🚢`;
         const ref = db.collection("events").doc();
         addedEvents.push({id:ref.id,type,createdAt:new Date(),operatorName:profile.name});
         batch.set(ref, {
-          leadId:current.id, operatorCode:profile.operatorCode, operatorName:profile.name,
+          bootcampId:bootcampId(current), leadId:current.id, operatorCode:profile.operatorCode, operatorName:profile.name,
           type, detail:"", note:"", newStatus:eventStatus(type), origin:"WEBAPP",
           createdAt:firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1259,7 +1274,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
       batch.set(eventRef, {
-        leadId:current.id, operatorCode:profile.operatorCode, operatorName:profile.name,
+        bootcampId:bootcampId(current), leadId:current.id, operatorCode:profile.operatorCode, operatorName:profile.name,
         type:"Prossimo step impostato", detail:type, note, newStatus:stepStatus(type),
         origin:"WEBAPP", createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -1430,6 +1445,8 @@ ${operatorName} | iconsulentidiviaggio.it`;
   }
 
   function initUI() {
+    window.CRM_BOOTCAMP_IMPORT.init({getContext:()=>({profile,auth,db}),onImported:async()=>{bootcampEditionChoice='';await loadDashboard();}});
+    $('#bootcampEditionSelect').onchange=()=>{bootcampEditionChoice=$('#bootcampEditionSelect').value;loadDashboard();};
     $("#userField label").textContent = "Email";
     $("#username").type = "email";
     $("#username").placeholder = "nome@dominio.it";

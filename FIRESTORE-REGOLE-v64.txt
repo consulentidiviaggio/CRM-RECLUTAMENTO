@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signedIn() { return request.auth != null; }
+  function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+  function isAdmin() { return signedIn() && profile().role == 'admin'; }
+  function ownCode(code) { return signedIn() && code == profile().operatorCode; }
+  function canImportBootcamp() { return ownCode('ST') && profile().get('canImportBootcamp', false) == true; }
+  match /users/{userId} {
+   allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+   allow write: if false;
+  }
+  match /contacts/{contactId} {
+   allow read: if isAdmin() || ownCode(resource.data.operatorCode) || canImportBootcamp();
+   allow create: if isAdmin() || ownCode(request.resource.data.operatorCode)
+     || (canImportBootcamp() && request.resource.data.operatorCode in ['ST','FB'] && request.resource.data.contactType == 'BOOTCAMP');
+   allow update: if isAdmin() || (ownCode(resource.data.operatorCode) && ownCode(request.resource.data.operatorCode))
+     || (canImportBootcamp() && request.resource.data.operatorCode == resource.data.operatorCode
+       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','lastName','name','email','phone','region','source','updatedAt','lastImportId']));
+   allow delete: if isAdmin();
+  }
+  match /answers/{answerId} {
+   allow read: if isAdmin() || ownCode(resource.data.operatorCode);
+   allow create: if isAdmin() || ownCode(request.resource.data.operatorCode);
+   allow update: if isAdmin() || (ownCode(resource.data.operatorCode) && ownCode(request.resource.data.operatorCode));
+   allow delete: if isAdmin();
+  }
+  match /events/{eventId} {
+   allow read: if isAdmin() || ownCode(resource.data.operatorCode);
+   allow create: if isAdmin() || ownCode(request.resource.data.operatorCode);
+   allow update: if isAdmin() || (ownCode(resource.data.operatorCode) && ownCode(request.resource.data.operatorCode));
+   allow delete: if isAdmin();
+  }
+  match /nextSteps/{stepId} {
+   allow read: if isAdmin() || ownCode(resource.data.operatorCode);
+   allow create: if isAdmin() || ownCode(request.resource.data.operatorCode);
+   allow update: if isAdmin() || (ownCode(resource.data.operatorCode) && ownCode(request.resource.data.operatorCode));
+   allow delete: if isAdmin();
+  }
+  match /bootcamps/{bootcampId} {
+   allow read: if signedIn();
+   allow create, update: if isAdmin() || canImportBootcamp();
+   allow delete: if isAdmin();
+  }
+  match /shipParticipants/{participantId} {
+   allow read, update, create: if isAdmin() || ownCode('ST');
+   allow delete: if isAdmin();
+  }
+  match /consultantRenewals/{renewalId} {
+   function validRenewal() {
+    return request.resource.data.operatorCode == 'ST' && request.resource.data.updatedBy == request.auth.uid
+      && request.resource.data.data is map && request.resource.data.headers is list
+      && request.resource.data.expiration is string
+      && (!('history' in request.resource.data) || request.resource.data.history is list);
+   }
+   allow read: if ownCode('ST') && resource.data.operatorCode == 'ST';
+   allow create: if ownCode('ST') && validRenewal();
+   allow update: if ownCode('ST') && resource.data.operatorCode == 'ST' && validRenewal();
+   allow delete: if false;
+  }
+  match /bootcampEnrollments/{enrollmentId} {
+   allow read: if canImportBootcamp() || ownCode(resource.data.operatorCode);
+   allow create: if canImportBootcamp()
+     && request.resource.data.operatorCode in ['ST','FB']
+     && request.resource.data.contactId is string && request.resource.data.bootcampId is string
+     && getAfter(/databases/$(database)/documents/contacts/$(request.resource.data.contactId)).data.operatorCode == request.resource.data.operatorCode;
+   allow update, delete: if false;
+  }
+  match /contactIdentifiers/{identifierId} {
+   allow read: if canImportBootcamp();
+   allow create: if canImportBootcamp() && request.resource.data.contactId is string;
+   allow update, delete: if false;
+  }
+  match /bootcampImports/{importId} {
+   allow read: if canImportBootcamp();
+   allow create: if canImportBootcamp() && request.resource.data.by == request.auth.uid;
+   allow update: if canImportBootcamp() && resource.data.by == request.auth.uid
+     && request.resource.data.by == resource.data.by;
+   allow delete: if false;
+   match /items/{itemId} {
+    allow read: if canImportBootcamp();
+    allow create: if canImportBootcamp() && request.resource.data.contactId is string;
+    allow update, delete: if false;
+   }
+  }
+  match /{document=**} { allow read, write: if false; }
+ }
+}

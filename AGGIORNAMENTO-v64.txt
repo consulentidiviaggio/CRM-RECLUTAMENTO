@@ -1,0 +1,44 @@
+CRM RECLUTAMENTO — VERSIONE 64
+Importazione / aggiornamento Excel Bootcamp nel CRM esistente.
+
+ORDINE DI ATTIVAZIONE
+1. Conservare una copia delle regole Firebase attuali.
+2. Il file FIRESTORE-REGOLE-v64.txt e' completo e basato sulle regole condivise in chat piu' Rinnovi. Se avete aggiunto altre regole in seguito, confrontarle prima della sostituzione. Pubblicare le regole v64.
+3. Firebase > Firestore > users > documento dell'UID di Stefano: aggiungere il campo canImportBootcamp, tipo boolean, valore true. NON cambiare role, operatorCode, UID, email o credenziali. Non aggiungere il campo al profilo Fabio. Le regole impediscono ai profili di autoassegnarsi questa autorizzazione.
+4. Il permesso abilita Stefano all'importazione amministrativa e alla lettura delle anagrafiche necessarie al confronto tra operatori. La sua dashboard resta filtrata ai suoi contatti. Fabio non puo' leggere i contatti di Stefano o i registri amministrativi.
+5. Caricare su GitHub tutti i file applicativi di questo ZIP, sostituendo quelli presenti; i due nuovi file bootcamp-import-core.js e bootcamp-import.js sono necessari.
+6. Attendere la pubblicazione, aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=64 e rientrare nel profilo Stefano per caricare il nuovo permesso.
+
+IMPORTANTE: PERCORSO DATI
+Per i contatti Bootcamp usare l'importazione nell'app. NON eseguire poi il vecchio sincronizzaContattiFirebase sullo stesso archivio: il vecchio script puo' riscrivere data, operatore e anagrafica dai fogli, annullando gli aggiornamenti. Non sono stati cancellati o modificati attivatori o script remoti. La sincronizzazione dei diretti e degli eventi resta un percorso distinto da valutare prima di usare uno script che sincronizza insieme tutte le sezioni.
+
+USO
+Contatti > Importa / aggiorna Bootcamp > selezionare Excel > Analizza file e prepara backup.
+Vengono letti tutti i fogli con una colonna Data Bootcamp riconosciuta. I fogli esclusi sono elencati. Intestazioni duplicate o vuote impediscono l'analisi.
+L'anteprima non scrive nel database. Mostra righe, nuovi/esistenti, operatori, iscrizioni, duplicati e conflitti/errori. Le righe non valide sono escluse; verificare il riepilogo prima della conferma.
+Il browser scarica un backup JSON delle anagrafiche e iscrizioni presenti prima dell'importazione. Controllare il download e selezionare la relativa casella, poi Conferma importazione. Non caricare Excel, backup o resoconti con dati personali su GitHub.
+Ogni riga valida e' salvata con una transazione atomica. Registri bootcampImports e relativi items riportano il prima/dopo, ID contatto, provenienza della riga ed esito. Un errore puo' lasciare un'importazione parziale esplicitamente segnalata; le righe gia' salvate non vengono cancellate. Scaricato anche resoconto JSON. Ripetere l'analisi per completare senza duplicare.
+Non e' promesso un unico commit atomico dell'intero file. Backup e registri consentono un recupero selettivo guidato: nessun ripristino massivo automatico che possa cancellare lavoro successivo.
+
+ASSEGNAZIONE CONFERMATA
+Esistenti: mantengono ID e operatore, anche se la fonte cambia.
+Nuovi: operatore esplicito valido; altrimenti fonte; altrimenti regione/genere esplicito.
+Lead_Facebook / Facebook / Lead_Crociere e foglio CONTATTI_FILTRATI_FB: Fabio.
+Lead_Disney e foglio FOGLI QUOTIDIANI Pro_dotto1$: Stefano. Contrasto tra segnali di fonte/foglio: esclusione e verifica.
+Insta: segue regione/genere.
+Lombardia, Lazio, Veneto, Piemonte: Stefano indipendentemente dal genere (dopo la priorita' fonte).
+Abruzzo, Molise, Campania, Puglia, Basilicata, Calabria, Sicilia, Sardegna: Fabio.
+Altre regioni riconosciute: uomo esplicito a Fabio; altrimenti Stefano. Nessuna deduzione dal nome. Regione assente o sconosciuta senza altra assegnazione: errore da verificare.
+File reale fornito: 102 iscritti, Bootcamp 10 novembre 2026 ore 21:00. Se tutti nuovi: 72 Stefano / 30 Fabio con Lead_Disney a Stefano. Il numero reale dipende dagli assegnatari gia' presenti.
+
+CONSERVAZIONE
+Un contatto assente dal file non viene eliminato. Campi vuoti non cancellano valori esistenti.
+Gli aggiornamenti importati non scrivono stato, risposte, note operative, eventi o appuntamenti. Gli ID esistenti restano validi per i link rubrica.
+Una nuova raccolta bootcampEnrollments associa la stessa scheda a piu' edizioni. Non si sovrascrive la bootcampDate storica degli esistenti. Selezionare l'edizione nella nuova tendina accanto ai filtri. I contatti diretti partecipanti al Bootcamp riusano la stessa anagrafica.
+Le nuove attivita' principali riportano anche bootcampId; la timeline rimane unica e le attivita' pregresse senza edizione non sono attribuite arbitrariamente. Gli alert approvati restano riferiti alle azioni gia' registrate: l'importazione non li resetta o riapre.
+Una configurazione Bootcamp assente viene inizializzata con data e ora dal file (21:00 se l'ora manca), Zoom vuoto. Configurazioni esistenti non sono sovrascritte. Il link Zoom va inserito dalla configurazione gia' presente nell'app.
+
+TEST
+Test locali di core, integrazione Firebase simulata e regressioni: anteprima senza scritture, permessi applicativi, duplicati, conflitti, operatore conservato, note/stati, reimportazione, piu' iscrizioni, audit, Rinnovi, flag Eventi e 39 controlli dashboard.
+Regole Firebase fornite ma non pubblicate ne' testate sul progetto reale. Prima del primo caricamento verificare nel simulatore il permesso importatore Stefano e il rifiuto Fabio/non autenticato per le raccolte amministrative. Il rifiuto applicativo simulato non sostituisce questa verifica lato Firebase.
+Nessun dato reale importato, nessun messaggio inviato e nessun deploy eseguito durante lo sviluppo.

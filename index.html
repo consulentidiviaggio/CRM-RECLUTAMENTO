@@ -1082,7 +1082,7 @@
           <button class="logout" data-logout>Esci</button>
         </div>
       </header>
-      <main>
+      <main><section id="bootcampImportPanel" hidden class="renewal-import" style="border:1px solid #ddd;border-radius:16px;padding:20px;margin:20px 0"><h2>Importa / aggiorna contatti Bootcamp</h2><p>Solo amministrazione Stefano. Nessun contatto assente dal file verrà cancellato.</p><input id="bcImportFile" type="file" accept=".xlsx,.xls,.csv"><button type="button" id="bcImportAnalyze">Analizza file e prepara backup</button><button type="button" id="bcImportClose">Chiudi</button><p id="bcImportNotice" role="status" aria-live="polite"></p><p id="bcImportSummary"></p><div id="bcImportRows"></div><p><label><input id="bcImportBackupAck" type="checkbox">Ho verificato il download del backup. Confermo l’importazione delle sole righe valide; errori e conflitti saranno esclusi.</label></p><button type="button" id="bcImportConfirm" disabled>Conferma importazione</button></section>
         <section class="hero">
           <div>
             <div class="eyebrow">Dashboard operatore</div>
@@ -1121,7 +1121,7 @@
         <div class="section-head">
           <h3 id="contactsHeading">Riepilogo contatti</h3>
           <div>
-            <button type="button" class="report-btn" id="refreshDashboard">Aggiorna</button>
+            <button type="button" class="report-btn" id="openBootcampImport" hidden>Importa / aggiorna Bootcamp</button><button type="button" class="report-btn" id="refreshDashboard">Aggiorna</button>
             <button class="report-btn" id="bootcampReport">
               Riepilogo Bootcamp
             </button>
@@ -1147,7 +1147,7 @@
               <option value="message:Richiesta chiamata post Bootcamp">Richiesta chiamata post Bootcamp</option>
             </optgroup>
           </select>
-          <select id="typeFilter" class="filter">
+          <select id="bootcampEditionSelect" aria-label="Edizione Bootcamp"></select><select id="typeFilter" class="filter">
             <option value="all">Tutte le provenienze</option>
             <option value="BOOTCAMP">Bootcamp</option>
             <option value="DIRETTO">Diretti</option>
@@ -1913,11 +1913,13 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="bootcamp-messages.js?v=63"></script>
-    <script src="crm-dashboard.js?v=63"></script>
-    <script src="renewals-core.js?v=63"></script>
-    <script src="renewals-crm.js?v=63"></script>
-    <script src="firebase-crm.js?v=63"></script>
-  <script src="pwa.js?v=63"></script>
+    <script src="bootcamp-messages.js?v=64"></script>
+    <script src="crm-dashboard.js?v=64"></script>
+    <script src="renewals-core.js?v=64"></script>
+    <script src="renewals-crm.js?v=64"></script>
+    <script src="bootcamp-import-core.js?v=64"></script>
+    <script src="bootcamp-import.js?v=64"></script>
+    <script src="firebase-crm.js?v=64"></script>
+  <script src="pwa.js?v=64"></script>
   </body>
 </html>

@@ -1,0 +1,15 @@
+CRM RECLUTAMENTO — VERSIONE 69 — CORREZIONE APERTURA EXCEL
+
+Corretto un errore nell'esportazione: pageMargins e pageSetup venivano inseriti dopo ignoredErrors, in contrasto con l'ordine degli elementi previsto dal formato Excel. Excel puo' chiedere riparazione e rimuovere il foglio REPORT.
+Le impostazioni sono ora inserite prima di ignoredErrors e degli altri elementi che devono seguirle. Conservati font, grassetto, impaginazione A4 orizzontale e adattamento a una pagina.
+
+Caricare tutti i file applicativi dello ZIP nella radice GitHub sostituendo quelli esistenti. Non caricare il file ZIP direttamente.
+Attendere pubblicazione e aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=69
+Rinnovi > Aggiorna > Riepilogo Excel: scaricare un NUOVO file. Il vecchio file danneggiato non si corregge aggiornando soltanto l'app; non usare la copia riparata da Excel per valutare il nuovo export.
+Nessun intervento Firebase o Apps Script. Include le funzioni della v68.
+
+VERIFICHE
+Riprodotto l'errore strutturale su un file generato con la libreria effettiva dell'app; verificato l'ordine dopo correzione, tutti gli XML leggibili, presenza del REPORT e stampa 1x1. Test standard e namespace con prefisso; patch ripetuta senza duplicazioni. Test Rinnovi, report e roadmap superati.
+Excel desktop non disponibile nell'ambiente di verifica: eseguire la prova finale sul computer dopo la nuova esportazione.
+Nessun dato reale modificato su Firebase.

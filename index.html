@@ -1069,7 +1069,7 @@
       <details class="renewal-urgent"><summary>URGENTI RINNOVI · nessun cambio di stato da 15 giorni</summary><div id="renewalUrgents"></div></details>
       <div class="renewal-toolbar"><input id="renewalSearch" type="search" placeholder="Cerca nome, cognome, email o cellulare" aria-label="Cerca consulenti"><select id="renewalExpiry" aria-label="Scadenza"></select><select id="renewalFilter" aria-label="Filtro stato"><option value="">Tutti in lista</option>Da contattare</option>Rinnovo inviato</option>Non rinnovato dalla sede</option>Non vuole rinnovare</option>Rinnovato</option><option>Urgenti</option><option value="excluded">Esclusi · Premium / Advance</option></select></div>
       <div class="renewal-toolbar"><label>Mese <input type="month" id="renewalMonth"></label><select id="renewalPrice" aria-label="Importo rinnovo"><option value="">Tutti gli importi</option><option value="49">49€</option><option value="99">99€</option><option value="custom">Altri importi</option></select><select id="renewalType" aria-label="Tipo rinnovo"><option value="">Tutte le tipologie</option><option value="first">Primo rinnovo</option><option value="later">Rinnovi successivi</option></select><label><input type="checkbox" id="renewalOnlyUrgent">Solo urgenti</label></div>
-      <details class="renewal-import"><summary>Obiettivi e avanzamento annuale</summary><p id="renewalGoalSummary"></p><form id="renewalGoalsForm"><div class="renewal-toolbar"><label>Anno <input id="renewalGoalYear" type="number" min="2020" max="2100" required></label><label>Obiettivo rinnovi <input id="renewalGoalTargetCount" type="number" min="0" step="1" required></label><label>Obiettivo importo € <input id="renewalGoalTargetAmount" type="number" min="0" step="0.01" required></label><label>Rinnovi già raggiunti <input id="renewalGoalBaseCount" type="number" min="0" step="1" required></label><label>Importo già raggiunto € <input id="renewalGoalBaseAmount" type="number" min="0" step="0.01" required></label><label>Saldo iniziale fino al <input id="renewalGoalCutoff" type="date" required></label></div><p>Il saldo comprende i risultati fino alla fine della data indicata. Si aggiungono solo gli stati Rinnovato attivi registrati successivamente, per le scadenze dell’anno scelto. Gli importi non attestano il pagamento.</p><button type="submit">Salva obiettivi e saldo iniziale</button><p id="renewalGoalNotice" role="status"></p></form></details><a id="renewalOutlookFallback" hidden>Apri Outlook · bozza non inviata</a>
+      <details class="renewal-import"><summary>Obiettivi e avanzamento annuale</summary><p id="renewalGoalSummary"></p><form id="renewalGoalsForm"><div class="renewal-toolbar"><label>Anno <input id="renewalGoalYear" type="number" min="2020" max="2100" required></label><label>Obiettivo rinnovi <input id="renewalGoalTargetCount" type="number" min="0" step="1" required></label><label>Obiettivo importo € <input id="renewalGoalTargetAmount" type="number" min="0" step="0.01" required></label><label>Rinnovi già raggiunti <input id="renewalGoalBaseCount" type="number" min="0" step="1" required></label><label>Importo già raggiunto € <input id="renewalGoalBaseAmount" type="number" min="0" step="0.01" required></label><label>Saldo iniziale fino al <input id="renewalGoalCutoff" type="date" required></label></div><details><summary>Storico mensile modificabile</summary><p>Puoi caricare il file storico con foglio ROADMAP oppure modificare i mesi qui sotto. La somma aggiorna il saldo iniziale; premi Salva per conservarla.</p><input id="renewalHistoryUpload" type="file" accept=".xlsx"><table><thead><tr><th>Mese</th><th>Rinnovi storici</th><th>Importo storico €</th></tr></thead><tbody id="renewalMonthlyRows"></tbody></table></details><p>Il saldo comprende i risultati fino alla fine della data indicata. Si aggiungono solo gli stati Rinnovato attivi registrati successivamente, per le scadenze dell’anno scelto. Gli importi non attestano il pagamento.</p><button type="submit">Salva obiettivi e saldo iniziale</button><p id="renewalGoalNotice" role="status"></p></form></details><a id="renewalOutlookFallback" hidden>Apri Outlook · bozza non inviata</a>
       <section id="renewalEditor" hidden class="renewal-import"><h2 id="renewalEditorTitle"></h2><p id="renewalEditorHelp"></p><p id="renewalEditorStatus" role="status" aria-live="polite"></p><form id="renewalEditorForm"><div id="renewalEditorFields"></div><div class="renewal-toolbar"><button type="submit">Salva scheda</button><button type="button" id="renewalEditorCancel">Annulla</button></div></form></section><p id="renewalResultCount"></p><section id="renewalCards"></section></main>
     </div>
     <div class="app hidden" id="operatorApp">
@@ -1912,17 +1912,20 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="xlsx-style.bundle.js?v=68"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="bootcamp-messages.js?v=65"></script>
-    <script src="crm-dashboard.js?v=65"></script>
-    <script src="renewals-core.js?v=65"></script>
-    <script src="renewals-report.js?v=65"></script>
-    <script src="renewals-crm.js?v=65"></script>
-    <script src="bootcamp-import-core.js?v=65"></script>
-    <script src="bootcamp-import.js?v=65"></script>
-    <script src="firebase-crm.js?v=65"></script>
-  <script src="pwa.js?v=65"></script>
+    <script src="bootcamp-messages.js?v=68"></script>
+    <script src="crm-dashboard.js?v=68"></script>
+    <script src="renewals-core.js?v=68"></script>
+    <script src="renewals-report.js?v=68"></script>
+    <script src="fflate.bundle.js?v=68"></script>
+    <script src="renewals-print.js?v=68"></script>
+    <script src="renewals-export-format.js?v=68"></script>
+    <script src="renewals-crm.js?v=68"></script>
+    <script src="bootcamp-import-core.js?v=68"></script>
+    <script src="bootcamp-import.js?v=68"></script>
+    <script src="firebase-crm.js?v=68"></script>
+  <script src="pwa.js?v=68"></script>
   </body>
 </html>

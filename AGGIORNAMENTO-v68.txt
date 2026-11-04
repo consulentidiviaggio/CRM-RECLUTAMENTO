@@ -1,0 +1,39 @@
+CRM RECLUTAMENTO — VERSIONE 68 — STORICO MENSILE E ROADMAP
+
+Caricare i file applicativi su GitHub sostituendo quelli presenti. Attendere pubblicazione e aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=68
+Non servono nuove regole Firebase rispetto alla v65: lo storico mensile viene salvato nel documento obiettivi gia' autorizzato.
+
+CARICAMENTO DELLO STORICO PRIVATO
+1. Scaricare il file separato Rinnovi-Ottobre-2026-Roadmap.xlsx. Non caricarlo su GitHub.
+2. Nell'app: Stefano > Rinnovi > Obiettivi e avanzamento annuale > Storico mensile modificabile.
+3. Caricare quel file tramite il selettore dentro Storico mensile (NON Carica Excel/CSV delle schede consulenti).
+4. Sono letti soltanto Mese, Rinnovi storici e Importo storico euro dal foglio ROADMAP. Nessuna anagrafica viene importata o modificata da questa operazione.
+5. Verificare anno 2026, obiettivi 250 e 15000, saldo 155 e 8745, riferimento 31 ottobre 2026. Correggere se necessario i singoli mesi, poi premere Salva obiettivi e saldo iniziale.
+6. I dati restano in Firebase e vengono riletti da Aggiorna o al nuovo accesso. Per i report premere Riepilogo Excel.
+
+RICOSTRUZIONE
+Gennaio-giugno: 102 rinnovi / 5298 euro.
+Luglio: 13 / 987.
+Agosto: 17 / 1033.
+Settembre: 13 / 737.
+Ottobre: 10 / 690.
+Totale fino ottobre: 155 / 8745. Residuo rispetto a 250 / 15000: 95 / 6255.
+Ottobre: 29 nominativi, 3 esclusi, 26 previsti (18 primi / 8 successivi), 10 confermati (4 primi / 6 successivi), importi 396 + 294 = 690, tasso 38,46%.
+L'errore storico di un rinnovo trascinato dalle roadmap precedenti e' corretto usando la somma dei mesi effettivi.
+ATTENZIONE LUGLIO: il totale riepilogativo del file e' 987 euro, ma una formula di dettaglio da' 938 euro. Sono stati usati i 987 del riepilogo, con nota esplicita nel file. Se si confermano 938, modificare luglio: il saldo diventa 8696 e il residuo 6304. Nessun importo e' considerato pagamento verificato.
+
+REGOLE DI AVANZAMENTO
+Lo storico mensile deve sommare esattamente al saldo iniziale. La tabella aggiorna i campi del saldo; non si salvano somme incoerenti.
+I mesi fino al riferimento sono considerati chiusi nello storico: eventuali rettifiche di quei mesi si effettuano nella tabella. Le nuove conferme dell'app non vengono sommate nuovamente su scadenze di mesi gia' inclusi nello storico.
+Per i mesi successivi si contano soltanto stati Rinnovato attivi registrati dopo la data di riferimento. Annullare una nuova conferma la sottrae dal progressivo.
+ROADMAP usa il mese della scadenza: non il mese del pagamento. Rimane distinta dall'eventuale contabilita' degli incassi.
+Se non si usa il dettaglio mensile, il saldo aggregato continua a funzionare con le regole precedenti.
+
+REPORT
+Il foglio REPORT mostra sotto il titolo obiettivo, saldo, nuovo dall'app, raggiunto, residuo e percentuali. Seguono i dati della selezione.
+Il foglio ROADMAP contiene tutti i mesi dell'anno con storico, conferme nuove, progressivi e residui. Per i mesi non ancora chiusi mostra il progressivo disponibile, non una previsione.
+SORGENTE e TIMELINE rimangono presenti. Il solo REPORT e' impostato su una pagina A4 orizzontale; molti dati possono richiedere riduzione automatica in stampa.
+Il file ottobre e' una ricostruzione separata, non sostituisce il file Google originale. Il suo foglio ROADMAP e' riutilizzabile per caricare il saldo nell'app.
+
+Test locali superati su storico, progressivi, annullamenti, conservazione dati, filtri, Bootcamp, Eventi e dashboard. Regole e dati Firebase reali non modificati durante lo sviluppo.

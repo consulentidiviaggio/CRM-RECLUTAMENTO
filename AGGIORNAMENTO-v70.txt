@@ -1,0 +1,18 @@
+CRM RECLUTAMENTO — VERSIONE 70 — PAGAMENTI EVENTI
+
+Nell’evento imposta Gratuito oppure A pagamento e salva la quota intera.
+Nella scheda del consulente scegli quota intera, metà prezzo o gratuita.
+Per le quote a pagamento seleziona Da pagare, Bonifico o POS e salva.
+Per correggere un incasso rimetti Da pagare e salva. Se cambia la quota
+dell’evento, i pagamenti già registrati conservano l’importo incassato.
+La metà è arrotondata al centesimo. I totali riguardano tutto l’evento.
+L’Excel riporta stato, quota, incassato, da incassare e totali.
+Il PDF delle presenze da condividere rimane senza dati di pagamento.
+
+Aggiornamento minimo: caricare index.html, firebase-crm.js, ship-payments.js,
+manifest.webmanifest e sw.js nella radice del repository. Il pacchetto
+completo include anche i file applicativi delle versioni precedenti.
+Nessuna nuova regola richiesta se Stefano ha già accesso in scrittura
+alla raccolta shipParticipants. Nessuna modifica ad Apps Script.
+Dopo la pubblicazione:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=70

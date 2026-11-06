@@ -41,6 +41,8 @@
   let dashboardEvents = [];
   const dashboardRules = window.CRM_DASHBOARD;
   let shipParticipants = [];
+  let shipFees = new Map();
+  let shipPaymentSaving = false;
   let selectedShipEvent = "";
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
@@ -148,7 +150,9 @@
     cards.innerHTML = '<div class="empty">Caricamento eventi…</div>';
     try {
       const snap = await db.collection("shipParticipants").get();
-      shipParticipants = snap.docs.map(doc => ({ id:doc.id, ...doc.data() }));
+      const docs = snap.docs.map(doc => ({ id:doc.id, ...doc.data() }));
+      shipFees = new Map(docs.filter(doc => doc.kind === "shipEventFee").map(doc => [doc.feeEventName, doc]));
+      shipParticipants = docs.filter(doc => doc.kind !== "shipEventFee");
       const groups = new Map();
       shipParticipants.forEach(person => {
         const name = String(person.eventName || "").trim();
@@ -187,6 +191,12 @@
     $("#shipEventTitle").textContent = eventName;
     $("#shipEventCount").textContent = query ? `${people.length} di ${allPeople.length} partecipanti` : `${allPeople.length} partecipanti`;
     $("#shipEmbarkTime").value = String(allPeople.find(person => person.embarkTime)?.embarkTime || "10:30");
+    const fee = shipFees.get(eventName);
+    if (changedEvent || $("#shipFeeForm").dataset.event !== eventName) fillShipFeeForm(eventName);
+    const totals = allPeople.map(person => shipPaymentInfo(person, fee));
+    $("#shipPaymentTotals").textContent = fee
+      ? `${fee.type === "free" ? "Evento gratuito" : "Quota intera: " + shipEuros(fee.cents)} · Totale incassato: ${shipEuros(totals.reduce((sum, p) => sum + p.paidCents, 0))} · Da incassare: ${shipEuros(totals.reduce((sum, p) => sum + p.pendingCents, 0))}`
+      : "Imposta se l’evento è gratuito o a pagamento.";
     $("#shipParticipants").innerHTML = people.map(person => {
       const status = norm(person.attendanceStatus);
       const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
@@ -206,7 +216,7 @@
       return `<article class="participant-card" data-participant-id="${esc(person.id)}">
         <div>${details}</div>
         <div class="participant-controls">
-          ${roleChoice}${whatsapp}
+          ${roleChoice}${whatsapp}${shipPaymentControls(person, fee, isConsultant)}
           <div class="event-message-status"><button type="button" data-event-message-sent aria-pressed="${person.messageSent === true}" class="${person.messageSent === true ? 'active' : ''}">Messaggio inviato${person.messageSent === true ? ' ✓' : ''}</button></div>
           <div class="attendance-buttons">
             <button type="button" class="present ${status === "PRESENTE" ? "active" : ""}" data-attendance="Presente">Presente</button>
@@ -215,10 +225,91 @@
         </div>
       </article>`;
     }).join("");
+    $$("[data-ship-payment]").forEach(form => {
+      const tariff = form.elements.tariff;
+      tariff.onchange = () => {
+        form.elements.method.disabled = tariff.value === "free";
+        if (form.elements.method.disabled) form.elements.method.value = "";
+      };
+      form.onsubmit = saveShipPayment;
+    });
     $$("[data-attendance]").forEach(button => button.onclick = () => saveAttendance(button));
     $$("[data-event-message-sent]").forEach(button => button.onclick = () => toggleEventMessageSent(button));
     $$("[data-role]").forEach(button => button.onclick = () => saveParticipantRole(button));
     $$("[data-event-whatsapp]").forEach(button => button.onclick = () => openEventWhatsApp(button));
+  }
+
+  function shipEuros(cents) {
+    return new Intl.NumberFormat("it-IT", {style:"currency", currency:"EUR"}).format(cents / 100);
+  }
+  function shipPaymentInfo(person, fee) {
+    return window.CRM_SHIP_PAYMENTS.describe(fee, person.shipPayment, shipPersonIsConsultant(person));
+  }
+  function fillShipFeeForm(eventName) {
+    const fee = shipFees.get(eventName);
+    $("#shipFeeForm").dataset.event = eventName;
+    $("#shipFeeType").value = fee?.type || "";
+    $("#shipFeePrice").value = fee?.type === "paid" ? (fee.cents / 100).toFixed(2).replace(".", ",") : "";
+    $("#shipFeePriceLabel").classList.toggle("hidden", fee?.type !== "paid");
+  }
+  function shipPaymentControls(person, fee, consultant) {
+    if (!consultant) return "";
+    const info = shipPaymentInfo(person, fee);
+    const p = person.shipPayment || {};
+    const option = (value, label, current) => `<option value="${value}"${current === value ? " selected" : ""}>${label}</option>`;
+    return `<div class="ship-payment">
+      <p><strong>Pagamento:</strong> ${esc(info.label)}${info.dueCents > 0 ? " · " + shipEuros(info.dueCents) : ""}</p>
+      ${fee?.type === "paid" ? `<form class="event-time-editor" data-ship-payment>
+        <label>Quota<select name="tariff">${option("full","Intera",p.tariff)}${option("half","Metà prezzo",p.tariff)}${option("free","Gratuita",p.tariff)}</select></label>
+        <label>Pagamento<select name="method"${p.tariff === "free" ? " disabled" : ""}>${option("","Da pagare",p.method)}${option("transfer","Bonifico",p.method)}${option("pos","POS",p.method)}</select></label>
+        <button type="submit">Salva pagamento</button>
+      </form>` : ""}
+    </div>`;
+  }
+  async function saveShipFee(event) {
+    event.preventDefault();
+    if (!isStefano() || shipPaymentSaving || !selectedShipEvent) return;
+    const eventName = selectedShipEvent;
+    const type = $("#shipFeeType").value;
+    if (!["free","paid"].includes(type)) return toast("Scegli il tipo di evento.", true);
+    const cents = type === "free" ? 0 : window.CRM_SHIP_PAYMENTS.parsePrice($("#shipFeePrice").value);
+    if (cents === null) return toast("Inserisci una quota valida maggiore di zero (es. 50,00).", true);
+    const hasPayments = shipParticipants.some(person => person.eventName === eventName && person.shipPayment?.paidCents > 0);
+    if (type === "free" && hasPayments) return toast("Ci sono incassi registrati. Correggili prima di impostare l’evento come gratuito.", true);
+    const button = event.currentTarget.querySelector("button");
+    shipPaymentSaving = button.disabled = true;
+    try {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(eventName));
+      const id = "event-fee-" + Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,"0")).join("");
+      const fee = {kind:"shipEventFee", feeEventName:eventName, type, cents};
+      await db.collection("shipParticipants").doc(id).set(fee, {merge:true});
+      shipFees.set(eventName, fee);
+      if (selectedShipEvent === eventName) {
+        fillShipFeeForm(eventName);
+        openShipEvent(eventName);
+      }
+      toast("Tariffa evento salvata ✓");
+    } catch (error) { toast("Tariffa non salvata: " + error.message, true); }
+    finally { shipPaymentSaving = button.disabled = false; }
+  }
+  async function saveShipPayment(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const person = shipParticipants.find(p => p.id === form.closest("[data-participant-id]")?.dataset.participantId);
+    if (!isStefano() || shipPaymentSaving || !person || person.eventName !== selectedShipEvent || !shipPersonIsConsultant(person)) return;
+    const button = form.querySelector("button");
+    shipPaymentSaving = button.disabled = true;
+    try {
+      const fee = shipFees.get(person.eventName);
+      const payment = window.CRM_SHIP_PAYMENTS.record(fee, form.elements.tariff.value, form.elements.method.value, person.shipPayment);
+      await db.collection("shipParticipants").doc(person.id).update({
+        shipPayment:{...payment, updatedBy:profile.name, updatedAt:firebase.firestore.FieldValue.serverTimestamp()}
+      });
+      person.shipPayment = payment;
+      if (selectedShipEvent === person.eventName) openShipEvent(person.eventName);
+      toast("Pagamento salvato ✓");
+    } catch (error) { toast("Pagamento non salvato: " + error.message, true); }
+    finally { shipPaymentSaving = button.disabled = false; }
   }
 
   async function saveManualConsultant(event) {
@@ -565,7 +656,9 @@ Ci vediamo a bordo! 🚢`;
 
   function exportShipEvent() {
     const people = sortedShipPeople();
+    const fee = shipFees.get(selectedShipEvent);
     const rows = people.map(person => {
+      const payment = shipPaymentInfo(person, fee);
       const isConsultant = person.roleOverride ? norm(person.roleOverride) === "CONSULENTE" : Boolean(person.isConsultant);
       return ({
       "VISITA NAVE":person.eventName,
@@ -577,11 +670,23 @@ Ci vediamo a bordo! 🚢`;
       "TIPO":isConsultant ? "Consulente" : "Partecipante",
       "VALORE":shipPersonValue(person, people),
       "PRESENZA":person.attendanceStatus || "Da registrare",
-      "MESSAGGIO INVIATO":person.messageSent === true ? 1 : 0
+      "MESSAGGIO INVIATO":person.messageSent === true ? 1 : 0,
+      "PAGAMENTO":payment.label,
+      "QUOTA (€)":payment.dueCents === null ? "" : payment.dueCents / 100,
+      "INCASSATO (€)":payment.label ? payment.paidCents / 100 : "",
+      "DA INCASSARE (€)":payment.label && payment.dueCents !== null ? payment.pendingCents / 100 : ""
       });
     });
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "PARTECIPANTI");
+    const sum = column => Math.round(rows.reduce((total, row) => total + (Number(row[column]) || 0), 0) * 100) / 100;
+    const sheet = XLSX.utils.json_to_sheet([...rows, {
+      "VISITA NAVE":"TOTALI EVENTO",
+      "QUOTA (€)":sum("QUOTA (€)"),
+      "INCASSATO (€)":sum("INCASSATO (€)"),
+      "DA INCASSARE (€)":sum("DA INCASSARE (€)")
+    }]);
+    sheet["!cols"] = [30,22,20,16,31,24,16,26,17,20,36,14,16,19].map(wch => ({wch}));
+    XLSX.utils.book_append_sheet(workbook, sheet, "PARTECIPANTI");
     const filename = selectedShipEvent.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "Evento";
     XLSX.writeFile(workbook, `Riepilogo ${filename}.xlsx`);
     toast("Riepilogo Excel creato ✓");
@@ -1470,6 +1575,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
       await window.CRM_RENEWALS.open({profile, auth, db, onBack: openWorkspaceChoice});
     };
     $("#openEventsArea").onclick = async () => {
+      if (!isStefano()) return;
       hideWorkAreas();
       $("#eventsApp").classList.remove("hidden");
       await loadShipEvents();
@@ -1480,6 +1586,8 @@ ${operatorName} | iconsulentidiviaggio.it`;
     $("#exportShipEvent").onclick = exportShipEvent;
     $("#exportShipEventPdf").onclick = exportShipEventPdf;
     $("#saveShipEmbarkTime").onclick = saveShipEmbarkTime;
+    $("#shipFeeForm").onsubmit = saveShipFee;
+    $("#shipFeeType").onchange = () => $("#shipFeePriceLabel").classList.toggle("hidden", $("#shipFeeType").value !== "paid");
     $("#shipParticipantSearch").oninput = () => openShipEvent(selectedShipEvent);
     $("#showManualConsultant").onclick = () => $("#manualConsultantForm").classList.remove("hidden");
     $("#cancelManualConsultant").onclick = () => $("#manualConsultantForm").classList.add("hidden");

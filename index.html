@@ -914,7 +914,9 @@
       .ship-event-actions .export-event { border-color:var(--o); color:var(--od); }
       .event-time-editor { display:flex; align-items:end; gap:9px; margin:0 0 18px; padding:14px; border:1px solid var(--line); border-radius:13px; background:#fff; }
       .event-time-editor label { display:grid; gap:5px; color:var(--muted); font-size:11px; font-weight:700; }
-      .event-time-editor input { min-width:135px; border:1px solid var(--line); border-radius:9px; padding:9px 10px; font:inherit; }
+      .event-time-editor input, .event-time-editor select { min-width:135px; border:1px solid var(--line); border-radius:9px; padding:9px 10px; font:inherit; }
+      .ship-payment .event-time-editor { flex-wrap:wrap; margin:6px 0; }
+      .ship-payment p { margin:6px 0; }
       .event-time-editor button { border:0; border-radius:9px; padding:10px 13px; background:var(--o); color:#fff; font-weight:800; }
       .event-participant-tools { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; margin-bottom:12px; }
       .event-participant-tools input { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 13px; font:inherit; }
@@ -979,7 +981,7 @@
       .future-appointments {margin:24px 0;}
       .contact-summary {align-items:flex-start;min-width:0;}
       .contact-summary>div:first-child {min-width:0;overflow-wrap:anywhere;flex:1;}
-    
+
 #renewalsApp main{max-width:1200px;margin:auto;padding:24px}#renewalsApp .renewal-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:20px 0}#renewalsApp button,#renewalsApp .renewal-upload{border:1px solid #ddd;border-radius:12px;padding:11px 16px;background:white;color:#171717;font:inherit;cursor:pointer}#renewalsApp .renewal-upload{background:#fc7c17;color:white;border-color:#fc7c17}#renewalsApp .renewal-upload.secondary{background:white;color:#555}#renewalsApp input[type=file]{display:block;max-width:220px;font-size:11px;margin-top:6px}#renewalsApp input[type=search]{flex:1;min-width:200px}#renewalsApp select,#renewalsApp input[type=search]{padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}#renewalsApp .renewal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}#renewalsApp .renewal-stats>div{border:1px solid #ddd;border-radius:16px;padding:20px}#renewalsApp .renewal-stats strong{display:block;font-size:28px}#renewalsApp .renewal-stats span{font-size:13px;color:#666}#renewalsApp .renewal-card{border:1px solid #ddd;border-radius:20px;padding:24px;margin:18px 0;background:white}#renewalsApp .renewal-card-top{display:flex;justify-content:space-between;gap:12px}#renewalsApp h2{font-size:22px;margin:5px 0 15px}#renewalsApp .renewal-price{font-size:26px;font-weight:700;color:#df6506;text-align:right}#renewalsApp .renewal-price small{display:block;font-size:11px;font-weight:400;color:#666}#renewalsApp dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}#renewalsApp dt{font-size:12px;color:#666}#renewalsApp dd{margin:4px 0;font-weight:500;overflow-wrap:anywhere}#renewalsApp .renewal-state{display:flex;justify-content:space-between;margin:20px 0}#renewalsApp .renewal-state>span{background:#f1f1f1;border-radius:20px;padding:5px 12px}#renewalsApp .renewal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}#renewalsApp .renewal-actions button[aria-pressed=true]{background:#167346;color:white;border-color:#167346}#renewalsApp .renewal-actions button:disabled{opacity:.5;cursor:wait}#renewalsApp .renewal-help{font-size:12px;color:#666;line-height:1.6}#renewalsApp pre{white-space:pre-wrap;font:inherit;font-size:13px;line-height:1.7}#renewalsApp summary{cursor:pointer;font-weight:600}#renewalsApp .renewal-timeline{border-top:1px solid #eee;margin-top:20px;padding-top:12px}#renewalsApp .renewal-timeline h3{font-size:14px}#renewalsApp .renewal-timeline small{display:block;color:#666}#renewalsApp .renewal-timeline li{margin:12px 0}#renewalsApp .renewal-cancelled{color:#888}#renewalsApp .renewal-cancelled strong{text-decoration:line-through}#renewalsApp .renewal-error{color:#b12626}#renewalsApp .renewal-urgent,#renewalsApp .renewal-import{padding:18px;border:1px solid #ddd;border-radius:14px;margin:18px 0}#renewalsApp #renewalUrgents button{display:block;margin:10px 0;text-align:left;width:100%}#renewalsApp #renewalUrgents span{display:block;font-size:12px}@media(max-width:700px){#renewalsApp dl{grid-template-columns:repeat(2,minmax(0,1fr))}#renewalsApp .renewal-stats{grid-template-columns:repeat(2,1fr)}#renewalsApp .renewal-card{padding:16px}#renewalsApp .operator>span{display:none}}
 
 #renewalsApp #renewalEditorFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}#renewalsApp #renewalEditorFields label{display:flex;flex-direction:column;gap:6px;font-size:13px}#renewalsApp #renewalEditorFields input{padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}
@@ -1194,6 +1196,14 @@
             <label>Orario imbarco<input id="shipEmbarkTime" type="time" value="10:30" /></label>
             <button type="button" id="saveShipEmbarkTime">Salva orario</button>
           </div>
+          <form id="shipFeeForm" class="event-time-editor">
+            <label>Tipo evento<select id="shipFeeType">
+              <option value="">Da impostare</option><option value="free">Gratuito</option><option value="paid">A pagamento</option>
+            </select></label>
+            <label id="shipFeePriceLabel" class="hidden">Quota intera (€)<input id="shipFeePrice" inputmode="decimal" placeholder="Es. 50,00" /></label>
+            <button type="submit">Salva tariffa</button>
+          </form>
+          <p id="shipPaymentTotals" aria-live="polite"></p>
           <div class="event-participant-tools">
             <input id="shipParticipantSearch" type="search" placeholder="Cerca partecipante, consulente, telefono o email" />
             <button type="button" id="showManualConsultant">Aggiungi consulente</button>
@@ -1912,20 +1922,21 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
-    <script src="xlsx-style.bundle.js?v=69"></script>
+    <script src="xlsx-style.bundle.js?v=70"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="bootcamp-messages.js?v=69"></script>
-    <script src="crm-dashboard.js?v=69"></script>
-    <script src="renewals-core.js?v=69"></script>
-    <script src="renewals-report.js?v=69"></script>
-    <script src="fflate.bundle.js?v=69"></script>
-    <script src="renewals-print.js?v=69"></script>
-    <script src="renewals-export-format.js?v=69"></script>
-    <script src="renewals-crm.js?v=69"></script>
-    <script src="bootcamp-import-core.js?v=69"></script>
-    <script src="bootcamp-import.js?v=69"></script>
-    <script src="firebase-crm.js?v=69"></script>
-  <script src="pwa.js?v=69"></script>
+    <script src="bootcamp-messages.js?v=70"></script>
+    <script src="crm-dashboard.js?v=70"></script>
+    <script src="renewals-core.js?v=70"></script>
+    <script src="renewals-report.js?v=70"></script>
+    <script src="fflate.bundle.js?v=70"></script>
+    <script src="renewals-print.js?v=70"></script>
+    <script src="renewals-export-format.js?v=70"></script>
+    <script src="renewals-crm.js?v=70"></script>
+    <script src="bootcamp-import-core.js?v=70"></script>
+    <script src="bootcamp-import.js?v=70"></script>
+    <script src="ship-payments.js?v=70"></script>
+    <script src="firebase-crm.js?v=70"></script>
+  <script src="pwa.js?v=70"></script>
   </body>
 </html>

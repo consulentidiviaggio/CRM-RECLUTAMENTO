@@ -908,7 +908,7 @@ Ci vediamo a bordo! 🚢`;
       const c = statusClass(l.status);
       const state = filter === "all" || (filter === "todo" && c === "todo") ||
         (filter === "rejected" && c === "rejected") || (filter === "worked" && c !== "todo") ||
-        (filter === "message:Link Bootcamp inviato" ? [...(leadMessageEvents.get(l.id) || [])].some(type => type === "Link partecipazione" || dashboardRules.linkDelivered(type)) : (filter.startsWith("message:") && leadMessageEvents.get(l.id)?.has(filter.slice(8))));
+        (filter.startsWith("message:") && dashboardRules.matchesLatest(contactHistory(l.id), filter.slice(8), l));
       const typeMatches = typeFilter === "all" || l.contactType === typeFilter;
       return state && typeMatches && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
     });

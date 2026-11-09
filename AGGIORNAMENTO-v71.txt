@@ -1,0 +1,20 @@
+CRM RECLUTAMENTO — VERSIONE 71 — FILTRO ULTIMA AZIONE
+
+Le fasi del filtro contatti considerano soltanto l’ultima azione non cancellata
+della timeline, ordinata per data, senza eliminare la cronologia.
+Materiale inviato non compare più anche nelle fasi precedenti.
+Link partecipazione include Link Bootcamp inviato, Iscritto il giorno prima,
+Iscritto il giorno stesso e Reminder Bootcamp, se sono l’ultima azione.
+Le regole di chiusura degli alert rimangono invariate.
+Chiamata non effettuata è disponibile nel filtro: una proposta chiamata
+rimasta senza seguito oltre la soglia prevista passa a questa voce; il messaggio
+successivo sposta il contatto alla nuova fase. Non compare anche tra le proposte.
+Il riepilogo mantiene l’ultima azione e la timeline completa.
+
+Estrarre lo ZIP e caricare i file nella radice del repository GitHub.
+Non caricare lo ZIP direttamente. Nessuna modifica a Firebase o Apps Script.
+Dopo la pubblicazione aprire:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=71
+
+Verificati filtro, esclusione fasi precedenti, equivalenze link, azioni
+cancellate, passaggio successivo e 39 controlli dashboard. Dati reali invariati.

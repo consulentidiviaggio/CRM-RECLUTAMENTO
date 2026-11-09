@@ -49,7 +49,19 @@
     if(linkDelivered(type)) return 'Link partecipazione';
     if(type === 'Richiesta offerta Bootcamp') return 'Richiesta promo Bootcamp';
     if(type === 'Richiesta app. post Bootcamp') return 'Richiesta chiamata post Bootcamp';
-    return type;
+    return eventType(type);
+  }
+  function matchesLatest(events, filter, contact = {}, now = Date.now()) {
+    const history = ordered(events);
+    const latest = history[history.length - 1];
+    if (!latest) return false;
+    const current = phase(latest.type);
+    const expected = phase(filter);
+    if (expected === 'Chiamata non effettuata') {
+      return current === expected || (current === call && urgent(contact, history, now).some(alert => alert.phase === 'call'));
+    }
+    if (current === call && expected === call && urgent(contact, history, now).some(alert => alert.phase === 'call')) return false;
+    return current === expected;
   }
   function urgent(contact, events, now = Date.now()) {
     const history = ordered(events).map(event => ({...event,type:eventType(event.type)}));
@@ -74,7 +86,7 @@
   function appointmentVisible(step, now = Date.now()) {
     return !!romeDay(step.when) && romeDay(step.when) >= romeDay(now) && !['COMPLETATO','CANCELLATO'].includes(String(step.status||'').toUpperCase());
   }
-  const api = {millis,romeDay,nextRomeMidnight,ordered,urgent,appointmentVisible,linkDelivered,phase};
+  const api = {millis,romeDay,nextRomeMidnight,ordered,urgent,appointmentVisible,linkDelivered,phase,matchesLatest};
   if (typeof module !== 'undefined') module.exports = api;
   else root.CRM_DASHBOARD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

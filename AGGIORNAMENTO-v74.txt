@@ -1,0 +1,13 @@
+VERSIONE 74 — FILTRO MATERIALE RICEVUTO NELLO STORICO
+
+Nuova voce: Tutti quelli che hanno ricevuto il materiale.
+Include i contatti con Materiale inviato nella timeline, anche se in seguito
+hanno ricevuto link, reminder o altri messaggi. Esclude gli eventi cancellati.
+La voce 3 · Materiale inviato continua a mostrare soltanto chi ha questa
+come ultima azione. Tutti gli altri filtri e le regole degli alert invariati.
+Nessuna modifica ai dati reali, ai messaggi o alla cronologia.
+
+Estrarre e sostituire i file nella radice GitHub.
+Nessuna modifica a Firebase o Apps Script.
+Dopo la pubblicazione:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=74

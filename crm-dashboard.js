@@ -54,6 +54,7 @@
   }
   function matchesLatest(events, filter, contact = {}, now = Date.now()) {
     const history = ordered(events);
+    if (filter === 'material-ever') return history.some(event => eventType(event.type) === material);
     const latest = history[history.length - 1];
     if (!latest) return false;
     if (filter === 'reminder-evening') return eventType(latest.type) === 'Reminder Bootcamp inviato';

@@ -46,6 +46,7 @@
     return ['Messaggio iscritto giorno prima','Messaggio iscritto giorno stesso','Link Bootcamp inviato','Reminder Bootcamp inviato'].includes(eventType(type));
   }
   function phase(type) {
+    if(eventType(type) === 'Reminder Bootcamp inviato') return 'Reminder Bootcamp inviato';
     if(linkDelivered(type)) return 'Link partecipazione';
     if(type === 'Richiesta offerta Bootcamp') return 'Richiesta promo Bootcamp';
     if(type === 'Richiesta app. post Bootcamp') return 'Richiesta chiamata post Bootcamp';
@@ -55,6 +56,7 @@
     const history = ordered(events);
     const latest = history[history.length - 1];
     if (!latest) return false;
+    if (filter === 'reminder-evening') return eventType(latest.type) === 'Reminder Bootcamp inviato';
     const current = phase(latest.type);
     const expected = phase(filter);
     if (expected === 'Chiamata non effettuata') {

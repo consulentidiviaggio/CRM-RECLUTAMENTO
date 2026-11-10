@@ -1,0 +1,13 @@
+VERSIONE 73 — LINK E REMINDER SEPARATI
+
+Il filtro Link partecipazione comprende Link Bootcamp inviato, Iscritto il
+giorno prima e Iscritto il giorno stesso solo se sono l’ultima azione.
+Il filtro Reminder · sera stessa comprende soltanto i contatti la cui ultima
+azione è Reminder Bootcamp inviato. I due filtri sono esclusivi: conta l’ultima
+azione registrata, anche se si invia nuovamente il link dopo un reminder.
+Il riepilogo indica Reminder come ultima azione distinta dal link.
+Timeline conservata e chiusura degli alert invariata.
+
+Estrarre e caricare i file nella radice GitHub sostituendo gli esistenti.
+Nessun intervento su Firebase o Apps Script.
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=73

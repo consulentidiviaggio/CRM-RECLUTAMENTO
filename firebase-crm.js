@@ -124,6 +124,7 @@
     $("#openBootcampImport").hidden = !(profile?.operatorCode === "ST" && profile?.canImportBootcamp === true);
     $("#operatorLabel").textContent = "Operatore " + name;
     $("#operatorAvatar").textContent = name.slice(0, 2).toUpperCase();
+    $$("[data-manage-todo]").forEach(button => button.classList.toggle("hidden", !isStefano()));
     $("#operatorGreeting").textContent = "Buongiorno, " + name;
     $("#contactsMenuButton").classList.toggle("hidden", String(profile?.operatorCode || "").toUpperCase() !== "ST");
   }
@@ -132,6 +133,8 @@
   }
   let dailyTodo;
   function hideWorkAreas() {
+    const todoDialog = $("#todoManageDialog");
+    if (todoDialog?.open) todoDialog.close();
     dailyTodo?.close();
     $("#dailyTodoApp").classList.add("hidden");
     $("#renewalsApp").classList.add("hidden");
@@ -1555,10 +1558,28 @@ ${operatorName} | iconsulentidiviaggio.it`;
 
   function initUI() {
     dailyTodo = window.CRM_DAILY_TODO.init({onBack:openWorkspaceChoice,today:()=>dashboardRules.romeDay(Date.now())});
+    const todoDialog = $("#todoManageDialog");
+    const todoContent = $("#dailyTodoContent");
+    const todoHome = $("#dailyTodoApp");
+    $$(".menu-button[data-manage-todo]").forEach(button => {
+      button.onclick = () => {
+        if (!isStefano() || !auth.currentUser || todoDialog.open) return;
+        $("#todoManageSlot").append(todoContent);
+        todoDialog.showModal();
+        dailyTodo.open(db,auth.currentUser.uid,{manageOnly:true});
+      };
+    });
+    $("#closeTodoManage").onclick = () => todoDialog.close();
+    todoDialog.onclose = () => {
+      if (todoDialog.open || todoContent.parentElement === todoHome) return;
+      dailyTodo.close();
+      todoHome.append(todoContent);
+    };
     $("#openDailyTodo").onclick = () => {
       if (!isStefano() || !auth.currentUser) return;
       hideWorkAreas();
-      $("#dailyTodoApp").classList.remove("hidden");
+      todoHome.append(todoContent);
+      todoHome.classList.remove("hidden");
       dailyTodo.open(db,auth.currentUser.uid);
     };
     window.CRM_BOOTCAMP_IMPORT.init({getContext:()=>({profile,auth,db}),onImported:async()=>{bootcampEditionChoice='';await loadDashboard();}});

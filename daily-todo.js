@@ -16,8 +16,9 @@
   function init({onBack, today}) {
     const $ = id => document.getElementById(id);
     const form = $('todoForm'), input = $('todoText'), date = $('todoDate'), list = $('todoItems');
-    const status = $('todoStatus'), count = $('todoCount'), archive = $('todoArchive');
-    let ref, tasks = [], busy = false, ready = false, generation = 0, unsubscribe, hadError = false;
+    const retry = $('todoRetry');
+    const status = $('todoStatus'), count = $('dailyTodoCount'), archive = $('todoArchive');
+    let connection, ref, editing = null, tasks = [], busy = false, ready = false, generation = 0, unsubscribe, hadError = false;
     const forDay = () => tasks.filter(t => t.day === date.value);
     function render() {
       archive.replaceChildren(new Option('Scegli un giorno archiviato',''));
@@ -36,18 +37,40 @@
         const item=document.createElement('li'), label=document.createElement('label'), check=document.createElement('input'), text=document.createElement('span');
         check.type='checkbox'; check.checked=task.done; check.disabled=busy; text.textContent=task.text;
         check.addEventListener('change', () => save(() => ref.doc(task.id).update({done:check.checked})));
-        label.append(check,text); item.append(label); list.append(item);
+        label.append(check,text); item.append(label);
+        const edit=document.createElement('button');
+        edit.type='button'; edit.className='report-btn'; edit.textContent='Modifica'; edit.disabled=busy;
+        edit.onclick=()=>{editing={id:task.id,text:task.text};render();list.querySelector('.todo-edit input')?.focus();};
+        item.append(edit);
+        if(editing?.id===task.id) {
+          const editor=document.createElement('form'), field=document.createElement('input'), submit=document.createElement('button'), cancel=document.createElement('button');
+          editor.className='todo-edit';field.value=editing.text;field.maxLength=300;field.required=true;field.disabled=busy;
+          field.setAttribute('aria-label','Testo del promemoria');
+          field.oninput=()=>{editing.text=field.value;};
+          submit.type='submit';submit.className='report-btn';submit.textContent='Salva';submit.disabled=busy;
+          cancel.type='button';cancel.className='report-btn';cancel.textContent='Annulla';cancel.disabled=busy;
+          cancel.onclick=()=>{editing=null;render();};
+          editor.onsubmit=event=>{
+            event.preventDefault();
+            const value=field.value.trim();
+            if(value && value.length<=300) save(()=>ref.doc(task.id).update({text:value}),()=>{editing=null;});
+          };
+          editor.append(field,submit,cancel);item.append(editor);
+        }
+        list.append(item);
       }
     }
     function close() {
       generation++;
-      unsubscribe?.(); unsubscribe=undefined; ready=false; busy=false; hadError=false; ref=undefined; tasks=[];
+      unsubscribe?.(); unsubscribe=undefined; ready=false; busy=false; hadError=false; ref=undefined; tasks=[]; editing=null; connection=undefined;
     }
-    function open(db, uid) {
+    function open(db, uid, {manageOnly=false, keepDraft=false}={}) {
       close();
+      connection={db,uid,manageOnly};
+      form.hidden=manageOnly; retry.hidden=true;
       const run = generation;
       ref=db.collection('users').doc(uid).collection('dailyTasks');
-      date.value=today(); input.value=''; status.textContent='Caricamento promemoria…'; render();
+      if(!keepDraft) { date.value=today(); input.value=''; } status.textContent='Caricamento promemoria…'; render();
       unsubscribe=ref.onSnapshot(snapshot=>{
         if(generation!==run) return;
         tasks=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}));
@@ -56,7 +79,7 @@
         render();
       },error=>{
         if(generation!==run) return;
-        ready=false; render();
+        ready=false; retry.hidden=false; render();
         status.textContent=error.code==='permission-denied'
           ? 'Archivio non accessibile. Pubblica la regola Firebase per la To do list.'
           : 'Impossibile caricare i promemoria. Torna al menu e riprova.';
@@ -77,12 +100,13 @@
     form.onsubmit=event=>{
       event.preventDefault();
       const day=date.value, text=input.value.trim();
-      if(!day || !text || text.length>300) return;
+      if(form.hidden || !day || !text || text.length>300) return;
       save(()=>ref.add({day,text,done:false}),()=>{if(input.value.trim()===text) input.value='';});
     };
     date.onchange=()=>{if(!date.value) date.value=today(); render();};
     archive.onchange=()=>{if(archive.value) date.value=archive.value; render();};
     $('todoToday').onclick=()=>{date.value=today(); render();};
+    retry.onclick=()=>{if(connection) open(connection.db,connection.uid,{manageOnly:connection.manageOnly,keepDraft:true});};
     $('todoBack').onclick=onBack;
     $('todoCalendar').onclick=()=>window.open(calendarUrl(date.value,forDay()),'_blank','noopener,noreferrer');
     $('todoPdf').onclick=()=>{

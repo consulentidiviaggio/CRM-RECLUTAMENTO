@@ -1,0 +1,16 @@
+VERSIONE 77 — TO DO LIST DA TUTTE LE AREE
+
+1. Firebase > Firestore Database > Regole. Se il blocco dailyTasks v76
+   esiste, sostituirlo. Se manca, aggiungere il blocco v77 dentro
+   match /databases/{database}/documents, prima del match finale generale.
+   Conservare le altre regole e premere Pubblica.
+2. Estrarre lo ZIP. Su GitHub caricare index.html, firebase-crm.js,
+   daily-todo.js, crm-dashboard.js, manifest.webmanifest, sw.js.
+3. Aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=77
+   oppure chiudere e riaprire il CRM dal desktop dopo la pubblicazione.
+
+Per creare: Menu > To do list. Per consultare, modificare il testo e
+spuntare: usare anche To do list in alto in Contatti, Eventi e Rinnovi.
+Il pannello apre lo stesso archivio ed è riservato al profilo Stefano.
+Se Firebase ha appena accettato le regole: premere Riprova accesso.
+PDF, Google Calendar e colonna Materiale inviato restano disponibili.

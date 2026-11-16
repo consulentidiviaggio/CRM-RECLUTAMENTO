@@ -986,13 +986,18 @@
 
 #renewalsApp #renewalEditorFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}#renewalsApp #renewalEditorFields label{display:flex;flex-direction:column;gap:6px;font-size:13px}#renewalsApp #renewalEditorFields input{padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}
 .event-message-status{margin:10px 0}.event-message-status button{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 16px;color:#333;font:inherit;cursor:pointer}.event-message-status button.active{background:#187347;border-color:#187347;color:#fff}.event-message-status button:disabled{opacity:.55;cursor:wait}
-#dailyTodoApp main{max-width:900px;margin:auto;padding:24px}
-#dailyTodoApp .todo-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:16px 0}
-#dailyTodoApp .todo-tools label{display:grid;gap:5px;min-width:0}
-#dailyTodoApp input:not([type=checkbox]),#dailyTodoApp select{font:inherit;padding:9px;border:1px solid #ddd;border-radius:9px;max-width:100%}
+.daily-todo-content{max-width:900px;margin:auto;padding:24px}
+.daily-todo-content .todo-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:16px 0}
+.daily-todo-content .todo-tools label{display:grid;gap:5px;min-width:0}
+.daily-todo-content input:not([type=checkbox]),.daily-todo-content select{font:inherit;padding:9px;border:1px solid #ddd;border-radius:9px;max-width:100%}
+#todoManageDialog{width:min(760px,calc(100% - 32px));max-height:90vh;overflow:auto;border:1px solid #ddd;border-radius:16px}
+#todoManageDialog::backdrop{background:#0008}
+#todoItems .todo-edit{display:flex;flex-wrap:wrap;gap:8px;width:100%;padding:8px}
+#todoItems .todo-edit[hidden],#todoForm[hidden]{display:none}
+#todoItems .todo-edit input{flex:1;min-width:0}
 #todoForm label{flex:1;min-width:min(100%,240px)!important}
 #todoItems{list-style:none;padding:0}
-#todoItems li label{display:flex;gap:10px;align-items:start;padding:12px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}
+#todoItems li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-bottom:1px solid #ddd}#todoItems li label{flex:1;min-width:0;display:flex;gap:10px;align-items:start;padding:12px;overflow-wrap:anywhere}
 #todoItems input{accent-color:#ff6600}
 #todoItems input:checked + span{text-decoration:line-through;color:#666}
 </style>
@@ -1073,7 +1078,7 @@
     </div>
     <div class="app hidden" id="dailyTodoApp">
       <header><div class="brand"><img src="logo-iconsulenti.png" alt="iconsulentidiviaggio.it"></div><div class="operator"><button class="logout" id="todoBack">Menu</button><button class="logout" data-logout>Esci</button></div></header>
-      <main>
+      <main id="dailyTodoContent" class="daily-todo-content">
         <div class="eyebrow">Area operativa</div><h1>To do list</h1>
         <div class="todo-tools">
           <label>Data <input type="date" id="todoDate" required></label>
@@ -1085,7 +1090,8 @@
           <button class="report-btn" type="submit" disabled>Aggiungi</button>
         </form>
         <p id="todoStatus" role="status"></p>
-        <p id="todoCount"></p>
+        <button id="todoRetry" class="report-btn" type="button" hidden>Riprova accesso</button>
+        <p id="dailyTodoCount" aria-live="polite"></p>
         <ul id="todoItems"></ul>
         <div class="todo-tools">
           <button class="report-btn" id="todoCalendar" type="button" disabled>Apri in Google Calendar</button>
@@ -1094,8 +1100,12 @@
         <p>Google Calendar apre un evento giornaliero da salvare.</p>
       </main>
     </div>
+    <dialog id="todoManageDialog" aria-label="Gestisci To do list">
+      <button type="button" class="report-btn" id="closeTodoManage">Chiudi</button>
+      <div id="todoManageSlot"></div>
+    </dialog>
     <div class="app hidden" id="renewalsApp">
-      <header><div class="brand"><img src="logo-iconsulenti.png" alt="iconsulentidiviaggio.it"></div><div class="operator"><span>Operatore Stefano</span><button class="logout" id="renewalMenu">Menu</button><button class="logout" data-logout>Esci</button></div></header>
+      <header><div class="brand"><img src="logo-iconsulenti.png" alt="iconsulentidiviaggio.it"></div><div class="operator"><span>Operatore Stefano</span><button type="button" class="menu-button hidden" data-manage-todo>To do list</button><button class="logout" id="renewalMenu">Menu</button><button class="logout" data-logout>Esci</button></div></header>
       <main><div class="eyebrow">Area riservata a Stefano</div><h1>Rinnovi consulenti</h1><p id="renewalDateTitle"></p>
       <div class="renewal-toolbar"><label class="renewal-upload">Carica Excel / CSV<input id="renewalUpload" type="file" accept=".xlsx,.xls,.csv"></label><button id="renewalRefresh">Aggiorna</button><button id="renewalReport">Riepilogo Excel</button><label class="renewal-upload secondary">Importa backup simulazione<input id="renewalRestore" type="file" accept=".json"></label></div>
       <p id="renewalNotice" role="status" aria-live="polite"></p>
@@ -1115,7 +1125,7 @@
         <div class="operator">
           <span id="operatorLabel">Operatore Stefano</span>
           <div class="avatar" id="operatorAvatar">SF</div>
-          <button class="menu-button hidden" id="contactsMenuButton">Menu</button>
+          <button type="button" class="menu-button hidden" data-manage-todo>To do list</button><button class="menu-button hidden" id="contactsMenuButton">Menu</button>
           <button class="logout" data-logout>Esci</button>
         </div>
       </header>
@@ -1206,7 +1216,7 @@
         <div class="operator">
           <span>Area eventi</span>
           <div class="avatar">ST</div>
-          <button class="menu-button" id="eventsMenuButton">Menu</button>
+          <button type="button" class="menu-button hidden" data-manage-todo>To do list</button><button class="menu-button" id="eventsMenuButton">Menu</button>
           <button class="logout" data-logout>Esci</button>
         </div>
       </header>
@@ -1958,22 +1968,22 @@
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
-    <script src="xlsx-style.bundle.js?v=76"></script>
+    <script src="xlsx-style.bundle.js?v=77"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script src="bootcamp-messages.js?v=76"></script>
-    <script src="crm-dashboard.js?v=76"></script>
-    <script src="renewals-core.js?v=76"></script>
-    <script src="renewals-report.js?v=76"></script>
-    <script src="fflate.bundle.js?v=76"></script>
-    <script src="renewals-print.js?v=76"></script>
-    <script src="renewals-export-format.js?v=76"></script>
-    <script src="renewals-crm.js?v=76"></script>
-    <script src="bootcamp-import-core.js?v=76"></script>
-    <script src="bootcamp-import.js?v=76"></script>
-    <script src="ship-payments.js?v=76"></script>
-    <script src="daily-todo.js?v=76"></script>
-    <script src="firebase-crm.js?v=76"></script>
-  <script src="pwa.js?v=76"></script>
+    <script src="bootcamp-messages.js?v=77"></script>
+    <script src="crm-dashboard.js?v=77"></script>
+    <script src="renewals-core.js?v=77"></script>
+    <script src="renewals-report.js?v=77"></script>
+    <script src="fflate.bundle.js?v=77"></script>
+    <script src="renewals-print.js?v=77"></script>
+    <script src="renewals-export-format.js?v=77"></script>
+    <script src="renewals-crm.js?v=77"></script>
+    <script src="bootcamp-import-core.js?v=77"></script>
+    <script src="bootcamp-import.js?v=77"></script>
+    <script src="ship-payments.js?v=77"></script>
+    <script src="daily-todo.js?v=77"></script>
+    <script src="firebase-crm.js?v=77"></script>
+  <script src="pwa.js?v=77"></script>
   </body>
 </html>

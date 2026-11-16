@@ -1,0 +1,19 @@
+// Incolla questo blocco dentro match /databases/{database}/documents { ... }
+// nelle regole esistenti, prima del match finale /{document=**}.
+// Lascia tutte le altre regole al loro posto.
+match /users/{userId}/dailyTasks/{taskId} {
+  function ownsDailyTasks() {
+    return request.auth != null && request.auth.uid == userId && ownCode('ST');
+  }
+  function validDailyTask() {
+    let task = request.resource.data;
+    return task.keys().hasOnly(['day','text','done'])
+      && task.day is string && task.day.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+      && task.text is string && task.text.size() > 0 && task.text.size() <= 300
+      && task.done is bool;
+  }
+  allow read: if ownsDailyTasks();
+  allow create: if ownsDailyTasks() && validDailyTask();
+  allow update: if ownsDailyTasks() && validDailyTask()
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done']);
+}

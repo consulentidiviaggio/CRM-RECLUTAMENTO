@@ -1,0 +1,11 @@
+VERSIONE 76 — TO DO LIST
+1. Firebase > Firestore Database > Regole: inserire il blocco in
+   FIRESTORE-TO-DO-v76.txt nelle regole esistenti e premere Pubblica.
+2. GitHub: caricare nella radice index.html, firebase-crm.js, daily-todo.js,
+   crm-dashboard.js, manifest.webmanifest e sw.js.
+3. Aprire https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=76
+   poi Menu > To do list. Disponibile per Stefano.
+La lista apre sulla data italiana di oggi. Le spunte si possono togliere.
+Le giornate restano nell’archivio. Calendar apre un evento per l’intera
+giornata da salvare manualmente; il PDF esporta solo la data selezionata.
+Include la colonna Materiale inviato introdotta nella v75.

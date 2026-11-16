@@ -130,7 +130,10 @@
   function isStefano() {
     return String(profile?.operatorCode || "").toUpperCase() === "ST";
   }
+  let dailyTodo;
   function hideWorkAreas() {
+    dailyTodo?.close();
+    $("#dailyTodoApp").classList.add("hidden");
     $("#renewalsApp").classList.add("hidden");
     window.CRM_RENEWALS?.close();
     $("#workspaceChoice").classList.add("hidden");
@@ -1532,6 +1535,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
           "PROVENIENZA":contact.contactType || 'BOOTCAMP',"DATA BOOTCAMP":formatDate(contact.bootcampDate,false),
           "STATO":contact.status || 'Da lavorare',
           "ULTIMA AZIONE":[latest ? dashboardRules.phase(latest.type) : 'Nessuna azione',urgent].filter(Boolean).join(' · '),
+          "MATERIALE INVIATO":Number(dashboardRules.matchesLatest(history, "material-ever")),
           "NOTE CHIAMATA":contact.answers?.['NOTE CHIAMATA'] || ''
         };
       });
@@ -1550,6 +1554,13 @@ ${operatorName} | iconsulentidiviaggio.it`;
   }
 
   function initUI() {
+    dailyTodo = window.CRM_DAILY_TODO.init({onBack:openWorkspaceChoice,today:()=>dashboardRules.romeDay(Date.now())});
+    $("#openDailyTodo").onclick = () => {
+      if (!isStefano() || !auth.currentUser) return;
+      hideWorkAreas();
+      $("#dailyTodoApp").classList.remove("hidden");
+      dailyTodo.open(db,auth.currentUser.uid);
+    };
     window.CRM_BOOTCAMP_IMPORT.init({getContext:()=>({profile,auth,db}),onImported:async()=>{bootcampEditionChoice='';await loadDashboard();}});
     $('#bootcampEditionSelect').onchange=()=>{bootcampEditionChoice=$('#bootcampEditionSelect').value;loadDashboard();};
     $("#userField label").textContent = "Email";

@@ -906,6 +906,7 @@ Ci vediamo a bordo! 🚢`;
       await loadDashboard();
     } catch (error) { toast(error.message, true); }
   }
+  let displayedReportRows = [];
   function renderLeads() {
     const q = $("#search").value.toLowerCase();
     const filter = $("#filter").value;
@@ -918,10 +919,11 @@ Ci vediamo a bordo! 🚢`;
       const typeMatches = typeFilter === "all" || l.contactType === typeFilter;
       return state && typeMatches && (!q || String(l.name).toLowerCase().includes(q) || String(l.phone || "").includes(q));
     });
+    displayedReportRows = list.map(contact => ({contact, history: contactHistory(contact.id)}));
     $("#resultCount").textContent = `${list.length} di ${leads.length}`;
-    $("#contacts").innerHTML = list.length ? list.map(l => {
-      const history = contactHistory(l.id), latest = history[history.length-1];
-      const alerts = contactAlerts(l);
+    $("#contacts").innerHTML = list.length ? displayedReportRows.map(({contact:l, history}) => {
+      const latest = history[history.length-1];
+      const alerts = dashboardRules.urgent(l, history);
       return `<article class="contact contact-summary"><div><div class="eyebrow">${esc(l.contactType === "DIRETTO" ? "DIRETTO" : l.bootcampLabel)}</div><h4>${esc(l.name)}</h4><p>${esc(l.email || '')} · ${esc(l.phone || '')}</p><p>${esc(l.region || '')} · Affiliato: ${esc(l.affiliate || l.affiliato || l.source || '')}</p><span class="status ${statusClass(l.status)}">${esc(l.status || 'Da lavorare')}</span><div class="last-action"><strong>ULTIMA AZIONE</strong><p>${latest ? esc(dashboardRules.phase(latest.type)) : 'Nessuna azione registrata'}</p>${alerts.map(a => `<p class="urgent-label">${esc(a.reason)}</p>`).join('')}<details><summary>Timeline completa (${history.length})</summary>${history.length ? '<ol>'+history.map(e => `<li><time>${esc(formatDate(e.createdAt))}</time> · ${esc(e.type)}${e.note || e.detail ? '<p>'+esc(e.note || e.detail)+'</p>' : ''}</li>`).join('')+'</ol>' : '<p>Nessuna attività registrata.</p>'}</details></div></div><div class="actions"><a class="icon" href="tel:${phone(l.phone)}">☎</a><button class="icon open" data-open="${esc(l.id)}">›</button></div></article>`;
     }).join('') : '<div class="empty">Nessun contatto trovato.</div>';
     $$('[data-open]').forEach(b => b.onclick = () => openLead(b.dataset.open));
@@ -1514,21 +1516,16 @@ ${operatorName} | iconsulentidiviaggio.it`;
     } finally { button.disabled = false; }
   }
 
-  async function exportReport() {
+  function exportReport() {
+    if (dashboardLoading) return toast("Attendi il caricamento dei contatti.");
+    const rows = displayedReportRows;
+    if (!rows.length) return toast("Nessun contatto corrisponde ai filtri selezionati.");
     const button = $("#bootcampReport");
     button.disabled = true;
     button.textContent = "Creazione Excel…";
     try {
-      const freshContacts = await db.collection("contacts").where("operatorCode","==",profile.operatorCode).get();
-      const visibleIds = new Set(leads.map(c=>c.id));
-      const reportLeads = freshContacts.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(c=>visibleIds.has(c.id));
-      const ids = new Set(reportLeads.map(contact => contact.id));
-      const eventSnap = await db.collection("events").where("operatorCode","==",profile.operatorCode).get();
-      const events = eventSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(e => ids.has(e.leadId) && !e.deleted);
       const operatorName = norm(profile.operatorCode) === "FB" ? "Fabio" : "Stefano";
-      const summary = reportLeads.map(contact => {
-        const history = dashboardRules.ordered(events.filter(e => e.leadId === contact.id));
+      const summary = rows.map(({contact, history}) => {
         const latest = history[history.length-1];
         const urgent = dashboardRules.urgent(contact,history).map(a => a.reason).join(' · ');
         return {
@@ -1544,14 +1541,16 @@ ${operatorName} | iconsulentidiviaggio.it`;
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "RIEPILOGO");
-      const history = events.sort((a,b)=>(jsDate(a.createdAt)?.getTime()||0)-(jsDate(b.createdAt)?.getTime()||0)).map(e=>({
-        "LEAD ID":e.leadId,"CONTATTO":reportLeads.find(c=>c.id===e.leadId)?.name || "",
-        "DATA":formatDate(e.createdAt),"EVENTO":e.type,"OPERATORE":e.operatorName || operatorName,
-        "DETTAGLIO":e.detail || "","NOTE":e.note || ""
-      }));
+      const history = rows.flatMap(({contact, history}) => history.map(event => ({contact, event})))
+        .sort((a,b) => dashboardRules.millis(a.event.createdAt) - dashboardRules.millis(b.event.createdAt))
+        .map(({contact,event:e}) => ({
+          "LEAD ID":contact.id,"CONTATTO":contact.name || "",
+          "DATA":formatDate(e.createdAt),"EVENTO":e.type,"OPERATORE":e.operatorName || operatorName,
+          "DETTAGLIO":e.detail || "","NOTE":e.note || ""
+        }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(history), "CRONOLOGIA");
       XLSX.writeFile(wb, `Riepilogo Bootcamp - ${operatorName}.xlsx`);
-      toast("Riepilogo Excel creato ✓");
+      toast(`Riepilogo Excel creato: ${rows.length} contatti ✓`);
     } catch (error) { toast(error.message, true); }
     finally { button.disabled = false; button.textContent = "Riepilogo Bootcamp"; }
   }

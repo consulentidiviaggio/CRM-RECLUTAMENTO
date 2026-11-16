@@ -1,0 +1,8 @@
+VERSIONE 78 — RIEPILOGO BOOTCAMP DEI RISULTATI FILTRATI
+L’Excel rispecchia l’elenco mostrato quando si preme Riepilogo Bootcamp.
+RIEPILOGO conserva lo stesso ordine. CRONOLOGIA include esclusivamente le
+attività dei contatti esportati. Se non ci sono risultati, non scarica file.
+Conserva la colonna MATERIALE INVIATO (1/0) e le funzioni della v77.
+Estrarre lo ZIP e caricare i quattro file applicativi nella radice GitHub.
+Nessuna modifica alle regole Firebase.
+Dopo la pubblicazione: https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=78

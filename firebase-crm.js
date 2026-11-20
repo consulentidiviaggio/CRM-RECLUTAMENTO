@@ -1186,6 +1186,7 @@ Ci vediamo a bordo! 🚢`;
     }
   }
   function timeline(events) {
+    $("#undoLastAction").disabled = messageSaving || !events.some(e=>!e.deleted);
     currentEvents = events;
     if(current) {
       leadMessageEvents.set(current.id, new Set(events.map(e => requestType(e.type))));
@@ -1202,6 +1203,52 @@ Ci vediamo a bordo! 🚢`;
     $("#timeline").innerHTML = events.length ? events.map(e =>
       `<div class="timeline-item"><div class="dot"></div><div><strong>${esc(e.type)}</strong><small>${esc(formatDate(e.createdAt))} · ${esc(e.operatorName || profile.name)}${e.bootcampId ? " · Bootcamp "+esc(e.bootcampId) : ""}${e.detail ? " · "+esc(e.detail) : ""}</small></div></div>`
     ).join("") : '<div class="empty">Nessun evento registrato.</div>';
+  }
+
+  async function undoLastContactAction() {
+    if (!current || messageSaving) return;
+    const contact = current;
+    const displayed = dashboardRules.ordered(currentEvents).at(-1);
+    if (!displayed) return toast("Nessuna azione da annullare.");
+    if (!window.confirm('Annullare “' + displayed.type + '”? Il contatto tornerà alla fase precedente. Messaggi WhatsApp e appuntamenti già creati non vengono cancellati.')) return;
+    messageSaving = true;
+    const button = $("#undoLastAction");
+    button.disabled = true;
+    try {
+      const snap = await db.collection("events").where("operatorCode","==",profile.operatorCode).where("leadId","==",contact.id).get();
+      const history = dashboardRules.ordered(snap.docs.map(doc=>({...doc.data(),id:doc.id})));
+      const latest = history.at(-1);
+      if (latest?.id !== displayed.id) throw Error("La timeline è cambiata: riapri la scheda prima di annullare.");
+      const remaining = history.slice(0,-1);
+      const contactRef = db.collection("contacts").doc(contact.id);
+      const eventRef = db.collection("events").doc(latest.id);
+      const status = await db.runTransaction(async transaction => {
+        const savedContact = await transaction.get(contactRef);
+        const savedEvent = await transaction.get(eventRef);
+        if (!savedContact.exists || !savedEvent.exists || savedEvent.data().deleted ||
+            savedEvent.data().leadId !== contact.id || savedEvent.data().operatorCode !== profile.operatorCode)
+          throw Error("Azione non più disponibile. Ricarica la scheda.");
+        const nextStatus = combinedStatus(remaining.map(e=>e.type), "Da lavorare", savedContact.data().answers || {});
+        transaction.update(eventRef, {
+          deleted:true, deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+          deletedBy:profile.name, deletionReason:"Annullamento ultima azione"
+        });
+        transaction.update(contactRef, {status:nextStatus,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        return nextStatus;
+      });
+      contact.status = status;
+      const lead = leads.find(l=>l.id===contact.id);
+      if (lead) lead.status=status;
+      if (current?.id===contact.id) timeline(remaining.slice().reverse());
+      renderLeads();
+      renderUrgent();
+      toast("Ultima azione annullata ✓");
+    } catch(error) { toast(error.message,true); }
+    finally {
+      messageSaving=false;
+      button.disabled=!currentEvents.some(e=>!e.deleted);
+      refreshBootcampMessageStates();
+    }
   }
 
   async function saveContact(extraEvents = [], repeatExtra = false) {
@@ -1646,6 +1693,7 @@ ${operatorName} | iconsulentidiviaggio.it`;
       }
       b.classList.toggle("pending");
     });
+    $("#undoLastAction").onclick = undoLastContactAction;
     $("#updateContact").onclick = () => { if(!messageSaving) saveContact(); };
     $("#firstMessage").onclick = saveAndOpenWhatsApp;
     $("#copyContactLink").onclick = copyContactLink;

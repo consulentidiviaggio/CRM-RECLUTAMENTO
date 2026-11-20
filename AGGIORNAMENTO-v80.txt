@@ -1,0 +1,11 @@
+VERSIONE 80 — ANNULLA ULTIMA AZIONE
+Scheda contatto > Timeline > Annulla ultima azione.
+Mostra il nome dell’azione da annullare e chiede conferma.
+L’attività è segnata come annullata nel database, senza cancellazione definitiva.
+Filtri, ultima azione, materiale inviato, alert e stato contatto sono ricalcolati
+sulle attività restanti. Il testo delle note non viene modificato.
+Non annulla messaggi già inviati, appuntamenti CRM o eventi Google Calendar:
+per questi usare le rispettive funzioni di gestione.
+Estrarre e caricare index.html, firebase-crm.js, manifest.webmanifest e sw.js
+nella radice GitHub. Nessuna modifica alle regole Firebase.
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=80

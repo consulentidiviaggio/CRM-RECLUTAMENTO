@@ -141,3 +141,19 @@ Nel weekend non fissiamo appuntamenti per l’attività, quindi riprenderò i co
 2) Cambio Giorno
 
 Rispondimi semplicemente con 1 oppure 2 👍`;
+
+window.CRM_FRIDAY_BOOTCAMP_MESSAGE = `Perfetto 👍 grazie {{nome}}, così ho già un quadro più chiaro.
+
+Visto che il Bootcamp è vicino, saltiamo la breve chiamata e ci vediamo direttamente in diretta *{{data_bootcamp}} alle {{ora_bootcamp}}*.
+
+Durante l’incontro vedrai concretamente come funziona l’attività, gli strumenti disponibili, la formazione e i costi per iniziare.
+
+👉 Ti invierò il link Zoom prima della diretta. Nel frattempo, mi confermi la tua partecipazione?
+
+*1) Sì, ci sarò*
+*2) Non sono sicuro di riuscire*
+
+Rispondimi con *1 o 2* 👍
+
+A presto!
+{{operatore}} | iconsulentidiviaggio.it`;

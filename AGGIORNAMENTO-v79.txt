@@ -1,0 +1,14 @@
+VERSIONE 79 — VARIANTE VENERDI DIRETTAMENTE AL BOOTCAMP
+
+Scheda contatto > variante per concordare la chiamata >
+Venerdì · direttamente al Bootcamp.
+Poi premere il pulsante 2 per aprire WhatsApp con il testo approvato.
+Nome, data, ora e operatore sono automatici. Non inserisce il link Zoom.
+La variante è selezionabile manualmente. Conserva le altre varianti.
+Mantiene l’evento e le regole del pulsante 2; non segna il link come inviato.
+
+Estrarre e caricare i cinque file applicativi nella radice GitHub:
+index.html, firebase-crm.js, bootcamp-messages.js, manifest.webmanifest, sw.js.
+Non cambiare le regole Firebase.
+Dopo la pubblicazione:
+https://consulentidiviaggio.github.io/CRM-RECLUTAMENTO/?v=79

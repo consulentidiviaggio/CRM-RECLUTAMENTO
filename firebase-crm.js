@@ -986,7 +986,7 @@ Ci vediamo a bordo! 🚢`;
     const ready = activeBootcampConfig?.zoomUrl && activeBootcampConfig?.time;
     $('#bootcampConfigStatus').textContent = ready ? 'Configurazione condivisa con Stefano e Fabio. Orario italiano.' : 'Inserisci ora e link Zoom, poi salva la configurazione.';
     $('#bootcampMessageButtons').innerHTML = bootcampMessages.map(m => `<button type="button" class="first-message" data-bootcamp-message="${m.key}" ${ready ? '' : 'disabled'}>${esc(m.label)}</button>`).join('');
-    $('[data-bootcamp-message="call"]').title = 'Scegli la variante mattina, pomeriggio o weekend';
+    $('[data-bootcamp-message="call"]').title = 'Scegli la variante mattina, pomeriggio, weekend o venerdì · direttamente al Bootcamp';
     $$('[data-bootcamp-message]').forEach(b => b.onclick = () => sendBootcampMessage(b));
     refreshBootcampMessageStates();
   }
@@ -1023,7 +1023,11 @@ Ci vediamo a bordo! 🚢`;
     const message = bootcampMessages.find(m => m.key === button.dataset.bootcampMessage);
     if(!message || !phone(contact.phone)) return toast('Cellulare non disponibile',true);
     if (!activeBootcampConfig?.zoomUrl) return toast('Salva prima la configurazione Bootcamp',true);
-    const template = message.key === 'call' && $('#callMessageVariant').value === 'weekend' ? window.CRM_WEEKEND_MESSAGE : message.text;
+    const callVariant = $('#callMessageVariant').value;
+    const template = message.key === 'call'
+      ? (callVariant === 'friday-bootcamp' ? window.CRM_FRIDAY_BOOTCAMP_MESSAGE
+        : callVariant === 'weekend' ? window.CRM_WEEKEND_MESSAGE : message.text)
+      : message.text;
     const text = composeBootcampMessage(template, messageVariables(contact, activeBootcampConfig), message.key);
     const recipient = '39' + phone(contact.phone);
     const iOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
